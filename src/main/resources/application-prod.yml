@@ -1,0 +1,165 @@
+spring:
+  application:
+    name: goc-gac-prod
+
+  # Database Configuration - Production
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  # JPA/Hibernate Configuration - Production
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Không tự động tạo/sửa schema trong production
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_versioned_data: true
+        connection:
+          provider_disables_autocommit: true
+
+  # Flyway Configuration - Production
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    locations: classpath:db/migration
+
+  # Email Configuration - Production
+  mail:
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: ${SPRING_MAIL_SSL_TRUST:}
+    debug: false
+
+  # Security OAuth2 Resource Server - Production
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
+
+# Server Configuration - Production
+server:
+  port: ${SERVER_PORT:8086}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
+
+# Keycloak Configuration - Production
+keycloak:
+  realm: ${KEYCLOAK_REALM:gocgac-htx}
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}
+  ssl-required: all  # Bắt buộc HTTPS trong production
+  resource: ${KEYCLOAK_CLIENT_ID:gocgac_app}
+  verify-token-audience: true
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:SxCZ1IJQNvKtA1vl548BoGUXONhBZU5l}
+  use-resource-role-mappings: true
+  bearer-only: true
+  autodetect-bearer-only: true
+  enable-basic-auth: false
+  public-client: false
+
+# Logging Configuration - Production
+logging:
+  level:
+    root: WARN
+    com.ecommerce.gocgac: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH:/var/log/gocgac/application.log}
+    max-size: 50MB
+    max-history: 90
+    total-size-cap: 5GB
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_FILE_PATH:/var/log/gocgac}/application-%d{yyyy-MM-dd}-%i.log
+
+# Actuator Configuration - Production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Swagger/OpenAPI Configuration - Production (Tắt hoặc bảo vệ)
+springdoc:
+  api-docs:
+    enabled: false  # Tắt trong production để bảo mật
+  swagger-ui:
+    enabled: false
+
+# Performance Configuration - Production
+spring:
+  jpa:
+    properties:
+      hibernate:
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+# Monitoring Configuration - Production
+management:
+  metrics:
+    tags:
+      environment: production
+      application: ${spring.application.name}
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+

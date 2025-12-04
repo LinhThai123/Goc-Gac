@@ -1,0 +1,123 @@
+spring:
+  application:
+    name: goc-gac-dev
+
+  # Database Configuration - Development
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/gocgac}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:gocgac123}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA/Hibernate Configuration - Development
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  # Flyway Configuration - Development
+  flyway:
+    enabled: false
+    baseline-on-migrate: true
+    validate-on-migrate: false
+
+  # Email Configuration - Development
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: 587
+    username: ${SPRING_MAIL_USERNAME:Linhthai187655@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:aucerrmpejvwzxoc}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    debug: true
+
+  # Security OAuth2 Resource Server - Development
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/gocgac-htx
+          jwk-set-uri: http://localhost:8080/realms/gocgac-htx/protocol/openid-connect/certs
+
+# Server Configuration - Development
+server:
+  port: 8086
+  error:
+    include-message: always
+    include-stacktrace: always
+    include-binding-errors: always
+
+# Keycloak Configuration - Development
+keycloak:
+  realm: gocgac-htx
+  auth-server-url: http://localhost:8080
+  ssl-required: external
+  resource: gocgac_app  # Client ID cho ứng dụng (dùng cho login/register của user)
+  verify-token-audience: true
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:SxCZ1IJQNvKtA1vl548BoGUXONhBZU5l}
+  use-resource-role-mappings: true
+  bearer-only: true
+  autodetect-bearer-only: true
+  enable-basic-auth: false
+  public-client: false
+  # Admin credentials để lấy admin token (dùng cho tạo user trong Keycloak)
+  admin:
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin123}
+
+# Logging Configuration - Development
+logging:
+  level:
+    root: INFO
+    com.ecommerce.gocgac: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/gocgac-dev.log
+    max-size: 10MB
+    max-history: 30
+
+# Actuator Configuration - Development
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Swagger/OpenAPI Configuration - Development
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+
