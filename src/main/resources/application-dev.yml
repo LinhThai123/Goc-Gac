@@ -121,3 +121,8 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
 
+# Application Configuration - Development
+app:
+  frontend:
+    url: ${APP_FRONTEND_URL:http://localhost:3000}
+

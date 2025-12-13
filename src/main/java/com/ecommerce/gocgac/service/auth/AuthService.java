@@ -13,6 +13,7 @@ import com.ecommerce.gocgac.exception.AuthException;
 import com.ecommerce.gocgac.external.KeycloakClient;
 import com.ecommerce.gocgac.repository.UserRepository;
 import com.ecommerce.gocgac.repository.RoleRepository;
+import com.ecommerce.gocgac.service.auth.EmailVerificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +34,7 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final KeycloakClient keycloakClient;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
     
     /**
      * Đăng nhập
@@ -133,14 +135,39 @@ public class AuthService {
                         .orElseThrow(() -> new AuthException("Role CUSTOMER không tồn tại trong hệ thống"));
                 });
             user.getRoles().add(defaultRole);
-            // Gán role trong Keycloak (không bắt buộc, có thể làm sau)
+            // Gán role trong Keycloak (BẮT BUỘC - để user có thể đăng nhập và sử dụng API)
             try {
                 keycloakClient.assignRoleToUser(keycloakUserId, defaultRole.getCode());
+                log.info("Đã gán role {} cho user {} trong Keycloak", defaultRole.getCode(), keycloakUserId);
             } catch (Exception e) {
-                log.warn("Không thể gán role trong Keycloak: {}", e.getMessage());
+                log.error("Không thể gán role trong Keycloak: {}", e.getMessage(), e);
+                // Nếu không thể gán role, rollback: xóa user trong Keycloak và database
+                try {
+                    keycloakClient.deleteUser(keycloakUserId);
+                    log.info("Đã xóa user {} trong Keycloak do không thể gán role", keycloakUserId);
+                } catch (Exception deleteException) {
+                    log.error("Không thể xóa user trong Keycloak: {}", deleteException.getMessage());
+                }
+                throw new AuthException("Không thể gán role cho user. Vui lòng thử lại hoặc liên hệ quản trị viên.");
             }
             
             user = userRepository.save(user);
+            // Flush để đảm bảo user đã được lưu vào database trước khi gửi email
+            userRepository.flush();
+            
+            // Gửi email verification từ Keycloak (không block transaction)
+            // Sử dụng try-catch riêng để không ảnh hưởng đến transaction
+            try {
+                emailVerificationService.sendVerificationEmail(user.getEmail());
+                log.info("Đã gửi email verification từ Keycloak cho user: {}", user.getEmail());
+            } catch (AuthException e) {
+                // Nếu email đã verified hoặc lỗi khác, chỉ log warning
+                log.warn("Không thể gửi email verification cho user {}: {}", user.getEmail(), e.getMessage());
+                // Không throw exception vì user đã được tạo thành công
+            } catch (Exception e) {
+                log.warn("Lỗi không mong đợi khi gửi email verification cho user {}: {}", user.getEmail(), e.getMessage());
+                // Không throw exception vì user đã được tạo thành công
+            }
             
             // Lấy roles của user
             List<String> roles = user.getRoles().stream()
@@ -159,7 +186,7 @@ public class AuthService {
             
             // Tạo response
             MessageResponse response = new MessageResponse();
-            response.setMessage("Đăng ký thành công");
+            response.setMessage("Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.");
             response.setStatus(HttpStatus.CREATED.value()); // 201
             response.setData(userDTO);
             

@@ -46,26 +46,36 @@ public class JwtUtils {
     }
     
     /**
-     * Lấy roles từ JWT token
+     * Lấy roles từ JWT token (cả realm roles và client roles từ gocgac_app)
      */
     @SuppressWarnings("unchecked")
     public static List<String> getRoles() {
         Jwt jwt = getCurrentJwt();
         if (jwt != null) {
-            // Keycloak roles có thể ở trong "realm_access" hoặc "resource_access"
+            List<String> allRoles = new java.util.ArrayList<>();
+            
+            // Lấy realm roles
             Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
             if (realmAccess != null) {
-                return (List<String>) realmAccess.get("roles");
-            }
-            
-            // Hoặc trong resource_access
-            Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
-            if (resourceAccess != null) {
-                Map<String, Object> clientAccess = (Map<String, Object>) resourceAccess.get("gocgac-backend");
-                if (clientAccess != null) {
-                    return (List<String>) clientAccess.get("roles");
+                List<String> realmRoles = (List<String>) realmAccess.get("roles");
+                if (realmRoles != null) {
+                    allRoles.addAll(realmRoles);
                 }
             }
+            
+            // Lấy client roles từ gocgac_app
+            Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
+            if (resourceAccess != null) {
+                Map<String, Object> clientAccess = (Map<String, Object>) resourceAccess.get("gocgac_app");
+                if (clientAccess != null) {
+                    List<String> clientRoles = (List<String>) clientAccess.get("roles");
+                    if (clientRoles != null) {
+                        allRoles.addAll(clientRoles);
+                    }
+                }
+            }
+            
+            return allRoles;
         }
         return List.of();
     }

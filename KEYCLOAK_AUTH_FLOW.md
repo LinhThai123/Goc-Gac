@@ -70,11 +70,17 @@ Map<String, Object> keycloakResult = keycloakClient.registerUser(
 ```java
 String adminToken = getAdminToken();
 ```
-- Gọi `getMasterAdminToken()` để lấy token từ master realm
-- Endpoint: `POST /realms/master/protocol/openid-connect/token`
-- Grant type: `password`
-- Client: `admin-cli`
-- Username/Password: `admin/admin123` (development)
+- **Ưu tiên**: Gọi `getMasterAdminToken()` để lấy token từ master realm
+  - Endpoint: `POST /realms/master/protocol/openid-connect/token`
+  - Grant type: `password`
+  - Client: `admin-cli` (public client)
+  - Username/Password: `admin/admin123` (development, configurable)
+- **Fallback**: Nếu master admin token thất bại, gọi `getServiceAccountToken()`
+  - Endpoint: `POST /realms/{realm}/protocol/openid-connect/token`
+  - Grant type: `client_credentials`
+  - Client ID: `gocgac_app`
+  - Client Secret: (từ config)
+  - **Lưu ý**: Service account cần có roles: `manage-users`, `view-users`, `query-users` từ `realm-management` client
 
 **4.2. Tạo user trong Keycloak:**
 ```http
@@ -99,9 +105,16 @@ Content-Type: application/json
 **4.3. Lấy User ID:**
 - Keycloak trả về `201 Created` với `Location` header
 - Format: `Location: .../users/{userId}`
-- Nếu không có Location header, query lại bằng email (retry 3 lần)
+- Extract userId từ Location header: `location.substring(location.lastIndexOf("/users/") + 7)`
 
-**4.4. Trả về kết quả:**
+**4.4. Set Password riêng (để đảm bảo password được set đúng):**
+```java
+setUserPassword(userId, password, adminToken);
+```
+- Endpoint: `PUT {keycloakServerUrl}/admin/realms/{realm}/users/{userId}/reset-password`
+- Đảm bảo password được set đúng cách trong Keycloak
+
+**4.5. Trả về kết quả:**
 ```java
 {
   "userId": "abc-123-def-456"  // Keycloak user ID
@@ -131,89 +144,93 @@ user.setLoyaltyPoints(0);
 ```java
 Role defaultRole = roleRepository.findByCode(request.getUserType().name())
     .orElseGet(() -> roleRepository.findByCode("CUSTOMER")
-        .orElseThrow(() -> new AuthException("Role CUSTOMER không tồn tại")));
+        .orElseThrow(() -> new AuthException("Role CUSTOMER không tồn tại trong hệ thống")));
 ```
 
-**6.2. Gán role cho user:**
+**6.2. Gán role cho user trong database:**
 ```java
 user.getRoles().add(defaultRole);
 ```
 
-**6.3. Gán role trong Keycloak (optional):**
+**6.3. Gán role trong Keycloak (BẮT BUỘC):**
 ```java
 try {
     keycloakClient.assignRoleToUser(keycloakUserId, defaultRole.getCode());
+    log.info("Đã gán role {} cho user {} trong Keycloak", defaultRole.getCode(), keycloakUserId);
 } catch (Exception e) {
-    log.warn("Không thể gán role trong Keycloak: {}", e.getMessage());
+    log.error("Không thể gán role trong Keycloak: {}", e.getMessage(), e);
+    // ROLLBACK: Xóa user trong Keycloak nếu không thể gán role
+    try {
+        keycloakClient.deleteUser(keycloakUserId);
+        log.info("Đã xóa user {} trong Keycloak do không thể gán role", keycloakUserId);
+    } catch (Exception deleteException) {
+        log.error("Không thể xóa user trong Keycloak: {}", deleteException.getMessage());
+    }
+    throw new AuthException("Không thể gán role cho user. Vui lòng thử lại hoặc liên hệ quản trị viên.");
 }
 ```
+
+**Chi tiết `keycloakClient.assignRoleToUser()`:**
+
+1. **Ưu tiên gán Client Role** (trong client `gocgac_app`):
+   - Endpoint: `GET /admin/realms/{realm}/clients/{clientId}/roles/{roleName}`
+   - Nếu client role tồn tại → Gán cho user
+   - Endpoint gán: `POST /admin/realms/{realm}/users/{userId}/role-mappings/clients/{clientId}`
+
+2. **Fallback: Gán Realm Role**:
+   - Kiểm tra realm role có tồn tại không
+   - Nếu chưa tồn tại → Tự động tạo realm role mới
+   - Endpoint tạo: `POST /admin/realms/{realm}/roles`
+   - Endpoint gán: `POST /admin/realms/{realm}/users/{userId}/role-mappings/realm`
+
+3. **Nếu cả hai đều thất bại** → Throw exception → Rollback (xóa user trong Keycloak)
 
 #### **Bước 7: Lưu user vào database**
 ```java
 user = userRepository.save(user);
 ```
 
-#### **Bước 8: Lấy token từ Keycloak (để user có thể sử dụng ngay)**
+#### **Bước 8: Tạo UserDTO và MessageResponse**
 
 ```java
-Map<String, Object> keycloakResponse = keycloakClient.login(
-    request.getEmail(), request.getPassword());
-```
+// Lấy roles của user
+List<String> roles = user.getRoles().stream()
+    .map(Role::getCode)
+    .collect(Collectors.toList());
 
-**Chi tiết `keycloakClient.login()`:**
-```http
-POST {keycloakServerUrl}/realms/{realm}/protocol/openid-connect/token
-Content-Type: application/x-www-form-urlencoded
+// Tạo UserDTO
+UserDTO userDTO = new UserDTO();
+userDTO.setId(user.getId());
+userDTO.setEmail(user.getEmail());
+userDTO.setFullName(user.getFullName());
+userDTO.setPhone(user.getPhone());
+userDTO.setAvatarUrl(user.getAvatarUrl());
+userDTO.setRoles(roles);
+userDTO.setUserType(user.getUserType().name());
 
-grant_type=password
-&client_id={clientId}
-&client_secret={clientSecret}
-&username=user@example.com
-&password=password123
-```
+// Tạo MessageResponse
+MessageResponse response = new MessageResponse();
+response.setMessage("Đăng ký thành công");
+response.setStatus(HttpStatus.CREATED.value()); // 201
+response.setData(userDTO);
 
-**Keycloak trả về:**
-```json
-{
-  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
-  "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
-  "expires_in": 3600,
-  "refresh_expires_in": 1800,
-  "token_type": "Bearer"
-}
-```
-
-#### **Bước 9: Tạo AuthResponse và trả về**
-
-```java
-AuthResponse response = new AuthResponse();
-response.setAccessToken(keycloakResponse.get("access_token"));
-response.setRefreshToken(keycloakResponse.get("refresh_token"));
-response.setExpiresIn(keycloakResponse.get("expires_in"));
-
-AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo();
-userInfo.setId(user.getId());  // Database ID
-userInfo.setEmail(user.getEmail());
-userInfo.setFullName(user.getFullName());
-userInfo.setPhone(user.getPhone());
-userInfo.setRoles(roles);  // ["CUSTOMER"]
-userInfo.setUserType(user.getUserType().name());
-
-response.setUser(userInfo);
 return response;
 ```
 
-#### **Bước 10: Trả về cho Client**
+**Lưu ý quan trọng:**
+- **KHÔNG tự động đăng nhập** sau khi đăng ký
+- User phải tự gọi `/api/auth/login` để lấy token
+- Điều này tránh lỗi "Account is not fully set up" từ Keycloak
+
+#### **Bước 9: Trả về cho Client**
 
 ```json
 HTTP 201 Created
 
 {
-  "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
-  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
-  "tokenType": "Bearer",
-  "expiresIn": 3600,
-  "user": {
+  "message": "Đăng ký thành công",
+  "status": 201,
+  "data": {
     "id": 1,
     "email": "user@example.com",
     "fullName": "Nguyễn Văn A",
@@ -426,8 +443,10 @@ HTTP 200 OK
 ### 1. Keycloak Configuration
 - **Server URL**: `http://localhost:8080`
 - **Realm**: `gocgac-htx`
-- **Client ID**: `gocgac-backend`
+- **Client ID**: `gocgac_app` (hoặc `gocgac-backend` tùy config)
 - **Client Secret**: (được cấu hình trong Keycloak)
+- **Admin Username**: `admin` (development, configurable)
+- **Admin Password**: `admin123` (development, configurable)
 
 ### 2. Token Types
 - **Access Token**: JWT token dùng để xác thực các API requests
@@ -465,19 +484,41 @@ HTTP 200 OK
 - Khi đăng nhập, chỉ Keycloak xác thực password
 
 ### 3. Roles
-- Roles được quản lý trong Database
-- Có thể đồng bộ với Keycloak (optional)
-- Roles trong Database là source of truth cho business logic
+- Roles được quản lý trong **Database** (source of truth cho business logic)
+- Roles được **đồng bộ với Keycloak** (BẮT BUỘC cho authentication)
+- **Client Roles** (trong client `gocgac_app`) được ưu tiên
+- **Realm Roles** được dùng làm fallback
+- Nếu role không tồn tại trong Keycloak, hệ thống tự động tạo realm role mới
+- **Lưu ý**: Nếu không thể gán role trong Keycloak, user sẽ bị rollback (xóa khỏi Keycloak)
 
 ### 4. Error Handling
-- Keycloak errors → Được catch và convert thành `AuthException`
+- Tất cả error messages được định nghĩa trong `KeycloakErrorConstants` (file: `common/constant/KeycloakErrorConstants.java`)
+- Keycloak errors → Được catch và convert thành `AuthException` hoặc `RuntimeException`
 - Database errors → Được catch và log
-- Client nhận được error message rõ ràng
+- Client nhận được error message rõ ràng từ constants
+- **Rollback logic**: Nếu gán role thất bại, user sẽ bị xóa khỏi Keycloak để tránh orphaned users
+
+**Các loại error constants:**
+- `LOGIN_*`: Lỗi đăng nhập (invalid credentials, no token, etc.)
+- `REGISTER_*`: Lỗi đăng ký (email exists, no permission, cannot create user, etc.)
+- `ADMIN_TOKEN_*`: Lỗi lấy admin token (failed, no credentials, etc.)
+- `USER_*`: Lỗi quản lý user (cannot set password, cannot delete, not found)
+- `ROLE_*`: Lỗi gán role (cannot assign, not exists, cannot create)
+- `CLIENT_*`: Lỗi client (not found, cannot get ID)
+- `REFRESH_TOKEN_*`: Lỗi refresh token (failed, invalid)
 
 ### 5. Admin Token
-- Development: Dùng master realm admin (`admin/admin123`)
-- Production: Nên dùng service account với proper roles
-- Admin token dùng để tạo user, gán roles trong Keycloak
+- **Ưu tiên**: Master realm admin token (`admin/admin123` với client `admin-cli`)
+  - Dùng cho development
+  - Có quyền cao nhất trong tất cả realms
+- **Fallback**: Service account token (client credentials)
+  - Cần cấu hình roles: `manage-users`, `view-users`, `query-users` từ `realm-management` client
+  - Phù hợp cho production
+- Admin token dùng để:
+  - Tạo user trong Keycloak
+  - Gán roles cho user
+  - Set password cho user
+  - Xóa user (rollback)
 
 ---
 
@@ -506,7 +547,8 @@ HTTP 200 OK
      │
      ▼
 ┌─────────────────┐
-│  AuthResponse   │ (Tokens + User Info)
+│ MessageResponse │ (Đăng ký: UserDTO)
+│  AuthResponse   │ (Đăng nhập: Tokens + User Info)
 └─────────────────┘
 ```
 
@@ -550,9 +592,28 @@ curl -X POST http://localhost:8081/api/auth/refresh \
 
 ## 📝 Tóm Tắt
 
-1. **Đăng ký**: Tạo user trong Keycloak → Lưu vào Database → Lấy token → Trả về
-2. **Đăng nhập**: Xác thực với Keycloak → Lấy user từ Database → Cập nhật lastLogin → Trả về token
-3. **Refresh Token**: Gửi refresh token → Keycloak trả về access token mới → Trả về cho client
+1. **Đăng ký**: 
+   - Tạo user trong Keycloak (với admin token) → Set password riêng
+   - Lưu vào Database → Gán role trong Database
+   - **Gán role trong Keycloak (BẮT BUỘC)** → Nếu thất bại, rollback (xóa user trong Keycloak)
+   - Trả về `MessageResponse` với `UserDTO` (KHÔNG tự động đăng nhập)
 
-Hệ thống sử dụng **hybrid approach**: Keycloak quản lý authentication, Database quản lý business data và roles.
+2. **Đăng nhập**: 
+   - Xác thực với Keycloak → Lấy tokens
+   - Lấy user từ Database → Kiểm tra status
+   - Cập nhật `lastLoginAt` → Trả về `AuthResponse` với tokens và user info
+
+3. **Refresh Token**: 
+   - Gửi refresh token → Keycloak trả về access token mới → Trả về cho client
+
+## 🔄 Rollback Logic trong Đăng Ký
+
+Nếu gán role trong Keycloak thất bại:
+1. Xóa user khỏi Keycloak (để tránh orphaned users)
+2. Transaction rollback trong database (do `@Transactional`)
+3. Throw `AuthException` với message rõ ràng
+
+Hệ thống sử dụng **hybrid approach**: 
+- **Keycloak**: Quản lý authentication, credentials, và roles (cho JWT)
+- **Database**: Quản lý business data, relationships, và roles (source of truth)
 
