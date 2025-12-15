@@ -2,6 +2,7 @@ package com.ecommerce.gocgac.controller.auth;
 
 import com.ecommerce.gocgac.common.response.AuthResponse;
 import com.ecommerce.gocgac.common.response.MessageResponse;
+import com.ecommerce.gocgac.dto.auth.ChangePasswordRequest;
 import com.ecommerce.gocgac.dto.auth.LoginRequest;
 import com.ecommerce.gocgac.dto.auth.RefreshTokenRequest;
 import com.ecommerce.gocgac.dto.auth.RegisterRequest;
@@ -43,6 +44,15 @@ public class AuthController {
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu sử dụng email, mật khẩu hiện tại và mật khẩu mới")
+    public ResponseEntity<MessageResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        MessageResponse response = authService.changePassword(request);
+        HttpStatus httpStatus = response.getStatus() != null ?
+            HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK;
+        return ResponseEntity.status(httpStatus).body(response);
     }
 }
 

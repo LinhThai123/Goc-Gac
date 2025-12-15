@@ -2,6 +2,7 @@ package com.ecommerce.gocgac.service.auth;
 
 import com.ecommerce.gocgac.common.response.AuthResponse;
 import com.ecommerce.gocgac.common.response.MessageResponse;
+import com.ecommerce.gocgac.dto.auth.ChangePasswordRequest;
 import com.ecommerce.gocgac.dto.auth.LoginRequest;
 import com.ecommerce.gocgac.dto.auth.RegisterRequest;
 import com.ecommerce.gocgac.dto.user.UserDTO;
@@ -13,7 +14,6 @@ import com.ecommerce.gocgac.exception.AuthException;
 import com.ecommerce.gocgac.external.KeycloakClient;
 import com.ecommerce.gocgac.repository.UserRepository;
 import com.ecommerce.gocgac.repository.RoleRepository;
-import com.ecommerce.gocgac.service.auth.EmailVerificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -219,6 +219,54 @@ public class AuthService {
         } catch (Exception e) {
             log.error("Refresh token error: {}", e.getMessage(), e);
             throw new AuthException("Refresh token thất bại: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Đổi mật khẩu (self-service) sử dụng Keycloak
+     */
+    @Transactional
+    public MessageResponse changePassword(ChangePasswordRequest request) {
+        try {
+            // Tìm user trong database
+            User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AuthException("Người dùng không tồn tại trong hệ thống"));
+
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                throw new AuthException("Tài khoản của bạn đã bị khóa");
+            }
+
+            // Gọi Keycloak để đổi mật khẩu (xác thực mật khẩu hiện tại bên Keycloak)
+            try {
+                keycloakClient.changeUserPassword(
+                    request.getEmail(),
+                    request.getCurrentPassword(),
+                    request.getNewPassword()
+                );
+            } catch (RuntimeException e) {
+                // Chuyển message từ Keycloak thành AuthException dễ hiểu
+                String msg = e.getMessage();
+                if (msg != null && msg.contains("Mật khẩu hiện tại không đúng")) {
+                    throw new AuthException("Mật khẩu hiện tại không đúng");
+                }
+                log.error("Lỗi khi đổi mật khẩu trong Keycloak cho user {}: {}", request.getEmail(), msg);
+                throw new AuthException("Không thể đổi mật khẩu: " + msg);
+            }
+
+            // Cập nhật mật khẩu hash trong database để đồng bộ
+            user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            MessageResponse response = new MessageResponse();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Đổi mật khẩu thành công");
+            response.setData(null);
+            return response;
+        } catch (AuthException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Change password error for email {}: {}", request.getEmail(), e.getMessage(), e);
+            throw new AuthException("Đổi mật khẩu thất bại: " + e.getMessage());
         }
     }
 }

@@ -83,6 +83,41 @@ public class KeycloakClient {
             throw new RuntimeException(LOGIN_FAILED + ": " + e.getMessage());
         }
     }
+
+    /**
+     * Đổi mật khẩu cho user (self-service, dùng email + mật khẩu hiện tại)
+     *
+     * Flow:
+     * 1. Gọi login(email, currentPassword) để xác thực mật khẩu hiện tại
+     * 2. Lấy admin token
+     * 3. Lấy userId từ email
+     * 4. Gọi reset-password để set mật khẩu mới
+     *
+     * @param email           Email của user
+     * @param currentPassword Mật khẩu hiện tại
+     * @param newPassword     Mật khẩu mới
+     */
+    public void changeUserPassword(String email, String currentPassword, String newPassword) {
+        // 1. Xác thực mật khẩu hiện tại bằng login
+        try {
+            login(email, currentPassword);
+        } catch (Exception e) {
+            log.warn("Đổi mật khẩu thất bại: mật khẩu hiện tại không đúng cho email {}", email);
+            throw new RuntimeException("Mật khẩu hiện tại không đúng");
+        }
+
+        // 2. Lấy userId từ email
+        String userId = getUserIdByEmail(email);
+        if (userId == null || userId.isEmpty()) {
+            log.error("Không thể tìm thấy user trong Keycloak với email {}", email);
+            throw new RuntimeException(USER_NOT_FOUND);
+        }
+
+        // 3. Lấy admin token và set mật khẩu mới
+        String adminToken = getAdminToken();
+        setUserPassword(userId, newPassword, adminToken);
+        log.info("Đã đổi mật khẩu thành công cho user {} trong Keycloak", email);
+    }
     
     /**
      * Đăng ký user mới trong Keycloak (đơn giản như dự án tham khảo)
