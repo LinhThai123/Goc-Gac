@@ -1,0 +1,623 @@
+@startuml Project Architecture Overview
+
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+
+' ==========================================
+' 1. ENTITY RELATIONSHIP DIAGRAM
+' ==========================================
+
+package "User Management" {
+    entity User {
+        * id : Long <<PK>>
+        --
+        * email : String <<unique>>
+        phone : String
+        * passwordHash : String
+        fullName : String
+        * userType : UserType
+        * status : UserStatus
+        emailVerified : Boolean
+        phoneVerified : Boolean
+        keycloakId : String <<unique>>
+        --
+        + getRoles()
+        + isEmailVerified()
+    }
+    
+    enum UserType {
+        SUPER_ADMIN
+        COOPERATIVE_MANAGER
+        SELLER
+        CUSTOMER
+        ACCOUNTANT
+        WAREHOUSE_STAFF
+        SHIPPER
+        MODERATOR
+    }
+    
+    entity Role {
+        * id : Long <<PK>>
+        --
+        name : String
+        description : String
+    }
+}
+
+package "Registration & Approval" {
+    entity SellerRegistration {
+        * id : Long <<PK>>
+        --
+        * userId : Long <<FK>>
+        * businessType : BusinessType
+        * businessName : String
+        taxCode : String
+        * status : ApprovalStatus
+        submittedAt : LocalDateTime
+        reviewedAt : LocalDateTime
+        reviewedBy : Long
+    }
+    
+    entity CooperativeRegistration {
+        * id : Long <<PK>>
+        --
+        * userId : Long <<FK>>
+        * status : ApprovalStatus
+        * currentStep : Integer
+        --
+        ' Step 1: Basic Info
+        * cooperativeName : String
+        * slug : String <<unique>>
+        * cooperativeCode : String <<unique>>
+        * establishmentDate : LocalDate
+        * cooperativeType : CooperativeType
+        * scale : CooperativeScale
+        --
+        ' Step 2-6: Additional Info
+        contactEmail : String
+        fullAddress : String
+        representativeName : String
+        taxCode : String
+        productTypes : List<String>
+        --
+        submittedAt : LocalDateTime
+        reviewedAt : LocalDateTime
+    }
+    
+    enum ApprovalStatus {
+        DRAFT
+        PENDING
+        APPROVED
+        REJECTED
+    }
+}
+
+package "Store & Cooperative" {
+    entity Store {
+        * id : Long <<PK>>
+        --
+        sellerId : Long <<FK>> <<nullable>>
+        cooperativeId : Long <<FK>> <<nullable>>
+        --
+        * storeName : String
+        * storeCode : String <<unique>>
+        description : String
+        contactPhone : String
+        contactEmail : String
+        address : String
+        * status : StoreStatus
+        isVerified : Boolean
+        --
+        + getOwnerType() : String
+        + getOwnerId() : Long
+    }
+    
+    entity Cooperative {
+        * id : Long <<PK>>
+        --
+        * userId : Long <<FK>> <<unique>>
+        * registrationId : Long <<FK>>
+        --
+        * cooperativeName : String
+        * slug : String <<unique>>
+        * cooperativeCode : String <<unique>>
+        cooperativeType : CooperativeType
+        scale : CooperativeScale
+        --
+        logoUrl : String
+        bannerUrl : String
+        isActive : Boolean
+    }
+    
+    entity CooperativeMember {
+        * id : Long <<PK>>
+        --
+        * cooperativeId : Long <<FK>>
+        * sellerId : Long <<FK>>
+        role : String
+        joinedAt : LocalDateTime
+        --
+        + UNIQUE(cooperativeId, sellerId)
+    }
+}
+
+package "Keycloak Integration" {
+    entity KeycloakUser {
+        * id : String <<UUID>>
+        --
+        email : String
+        username : String
+        firstName : String
+        lastName : String
+        emailVerified : Boolean
+        enabled : Boolean
+        --
+        + getRoles() : List<String>
+        + assignRole(role)
+    }
+}
+
+' ==========================================
+' RELATIONSHIPS
+' ==========================================
+
+User ||--o{ SellerRegistration : "creates"
+User ||--o| Cooperative : "manages (1:1)"
+User ||--o| Store : "owns (via sellerId)"
+User }o--o{ Role : "has many"
+
+SellerRegistration ||--o| Store : "approves to create"
+CooperativeRegistration ||--o| Cooperative : "approves to create"
+
+Cooperative ||--o{ Store : "owns (via cooperativeId)"
+Cooperative ||--o{ CooperativeMember : "has members"
+User ||--o{ CooperativeMember : "is member (as SELLER)"
+
+User ||--|| KeycloakUser : "syncs with"
+
+' ==========================================
+' CONSTRAINTS & NOTES
+' ==========================================
+
+note right of Store
+  **Store Ownership:**
+  - seller_id XOR cooperative_id
+  - Only one can have value
+  - Validated at Service layer
+end note
+
+note right of CooperativeRegistration
+  **6-Step Registration:**
+  1. Basic HTX Info
+  2. Contact Info
+  3. Business Address
+  4. Representative Info
+  5. Legal Info
+  6. Business Info
+end note
+
+note right of User
+  **User Types:**
+  - CUSTOMER: Default
+  - SELLER: After SellerRegistration approved
+  - COOPERATIVE_MANAGER: After CooperativeRegistration approved
+end note
+
+@enduml
+
+' ==========================================
+' 2. REGISTRATION FLOW DIAGRAM
+' ==========================================
+
+@startuml Registration Flows
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+    BackgroundColor #E1F5FE
+    BorderColor #01579B
+    FontColor #000000
+}
+
+title Registration Flows Overview
+
+|#LightBlue|**User Registration**|
+start
+:User registers via /api/auth/register;
+:Create user in Keycloak;
+:Create user in Database;
+:Assign default role (CUSTOMER);
+:Send email verification;
+stop
+
+|#LightGreen|**Seller Registration Flow**|
+start
+:User (CUSTOMER) logged in;
+:Submit SellerRegistration form;
+:Status = PENDING;
+:Admin reviews;
+if (Approved?) then (yes)
+  :Create Store with seller_id;
+  :Update User.userType = SELLER;
+  :Assign SELLER role in Keycloak;
+  :Notify user;
+else (no)
+  :Status = REJECTED;
+  :Notify user with reason;
+endif
+stop
+
+|#LightYellow|**Cooperative Registration Flow**|
+start
+:User (CUSTOMER/SELLER) logged in;
+:Step 1: Basic HTX Info;
+:Status = DRAFT;
+:Step 2: Contact Info;
+:Step 3: Business Address;
+:Step 4: Representative Info;
+:Step 5: Legal Info;
+:Step 6: Business Info;
+:Submit registration;
+:Status = PENDING;
+:Admin reviews;
+if (Approved?) then (yes)
+  :Create Cooperative entity;
+  :Create Store with cooperative_id;
+  :Update User.userType = COOPERATIVE_MANAGER;
+  :Assign COOPERATIVE_MANAGER role in Keycloak;
+  :Notify user;
+else (no)
+  :Status = REJECTED;
+  :Notify user with reason;
+endif
+stop
+
+@enduml
+
+' ==========================================
+' 3. USER TYPE HIERARCHY & PERMISSIONS
+' ==========================================
+
+@startuml User Type Hierarchy
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam class {
+    BackgroundColor #E3F2FD
+    BorderColor #1976D2
+}
+
+title User Type Hierarchy and Permissions
+
+class User {
+    + id : Long
+    + email : String
+    + userType : UserType
+    + keycloakId : String
+}
+
+class CUSTOMER {
+    + Can browse products
+    + Can place orders
+    + Can register as Seller
+    + Can register as Cooperative
+}
+
+class SELLER {
+    + Can manage own Store
+    + Can create products
+    + Can manage orders
+    + Can be member of Cooperative
+}
+
+class COOPERATIVE_MANAGER {
+    + Can manage Cooperative
+    + Can manage Cooperative Store
+    + Can manage members
+    + Can assign roles to members
+}
+
+class SUPER_ADMIN {
+    + Can manage all
+    + Can approve registrations
+    + Can manage users
+    + Can manage system
+}
+
+User <|-- CUSTOMER
+User <|-- SELLER
+User <|-- COOPERATIVE_MANAGER
+User <|-- SUPER_ADMIN
+
+SELLER ..> COOPERATIVE_MANAGER : "can join as member"
+
+note right of COOPERATIVE_MANAGER
+  **Upgrade Path:**
+  CUSTOMER → SELLER → COOPERATIVE_MANAGER
+  or
+  CUSTOMER → COOPERATIVE_MANAGER
+end note
+
+@enduml
+
+' ==========================================
+' 4. STORE OWNERSHIP MODEL
+' ==========================================
+
+@startuml Store Ownership Model
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam component {
+    BackgroundColor #F3E5F5
+    BorderColor #7B1FA2
+}
+
+title Store Ownership Model
+
+package "Store Ownership" {
+    component Store {
+        [Store Entity]
+        --
+        sellerId : Long (nullable)
+        cooperativeId : Long (nullable)
+        --
+        **Constraint:**
+        seller_id XOR cooperative_id
+    }
+}
+
+package "Seller Store" {
+    component Seller {
+        [User with SELLER role]
+    }
+    
+    component SellerRegistration {
+        [Seller Registration]
+        Status: APPROVED
+    }
+    
+    Seller --> SellerRegistration : "creates"
+    SellerRegistration --> Store : "approves to create"
+    Seller --> Store : "owns via seller_id"
+}
+
+package "Cooperative Store" {
+    component CooperativeManager {
+        [User with COOPERATIVE_MANAGER role]
+    }
+    
+    component Cooperative {
+        [Cooperative Entity]
+    }
+    
+    component CooperativeRegistration {
+        [Cooperative Registration]
+        Status: APPROVED
+    }
+    
+    CooperativeManager --> CooperativeRegistration : "creates"
+    CooperativeRegistration --> Cooperative : "approves to create"
+    Cooperative --> Store : "owns via cooperative_id"
+    CooperativeManager --> Cooperative : "manages"
+}
+
+note right of Store
+  **Store can belong to:**
+  1. Seller (seller_id != null)
+  2. Cooperative (cooperative_id != null)
+  
+  **Never both!**
+end note
+
+@enduml
+
+' ==========================================
+' 5. KEYCLOAK INTEGRATION FLOW
+' ==========================================
+
+@startuml Keycloak Integration Flow
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequence {
+    ArrowColor #1976D2
+    LifeLineBorderColor #424242
+    LifeLineBackgroundColor #E3F2FD
+}
+
+title Keycloak Integration Flow
+
+actor User
+participant "Spring Boot App" as App
+participant "Keycloak Server" as Keycloak
+database "PostgreSQL" as DB
+
+== Registration ==
+User -> App: POST /api/auth/register
+App -> Keycloak: Create user (Admin API)
+Keycloak --> App: User created (userId)
+App -> Keycloak: Assign default role (CUSTOMER)
+App -> DB: Save user with keycloakId
+App -> Keycloak: Send verification email
+App --> User: Registration success
+
+== Login ==
+User -> App: POST /api/auth/login
+App -> Keycloak: Token endpoint (username, password)
+Keycloak --> App: Access token + Refresh token
+App -> DB: Update lastLoginAt
+App --> User: JWT token
+
+== Role Assignment (After Approval) ==
+App -> Keycloak: Get admin token
+App -> Keycloak: Assign role to user (SELLER/COOPERATIVE_MANAGER)
+Keycloak --> App: Role assigned
+App -> DB: Update User.userType
+App --> User: Role updated
+
+== Token Validation ==
+User -> App: API request with JWT
+App -> Keycloak: Validate token (OAuth2 Resource Server)
+Keycloak --> App: Token valid + roles
+App -> App: Extract authorities from JWT
+App --> User: Authorized response
+
+@enduml
+
+' ==========================================
+' 6. COOPERATIVE MEMBER STRUCTURE
+' ==========================================
+
+@startuml Cooperative Member Structure
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam class {
+    BackgroundColor #E8F5E9
+    BorderColor #388E3C
+}
+
+title Cooperative Member Structure
+
+class Cooperative {
+    + id : Long
+    + userId : Long
+    + cooperativeName : String
+    + slug : String
+    + cooperativeCode : String
+}
+
+class CooperativeMember {
+    + id : Long
+    + cooperativeId : Long
+    + sellerId : Long
+    + role : String
+    + joinedAt : LocalDateTime
+}
+
+class User {
+    + id : Long
+    + userType : UserType
+}
+
+class Store {
+    + id : Long
+    + cooperativeId : Long
+}
+
+Cooperative "1" *-- "many" CooperativeMember : "has members"
+CooperativeMember "many" --> "1" User : "seller is"
+Cooperative "1" --> "1" Store : "owns"
+Cooperative "1" --> "1" User : "managed by\n(COOPERATIVE_MANAGER)"
+
+note right of CooperativeMember
+  **Member Roles:**
+  - member: Regular member
+  - manager: Manager role
+  - accountant: Accountant
+  - warehouse_staff: Warehouse staff
+end note
+
+note bottom of Cooperative
+  **Cooperative Structure:**
+  1 COOPERATIVE_MANAGER (owner)
+  + N SELLER members
+  = 1 Cooperative Store
+end note
+
+@enduml
+
+' ==========================================
+' 7. COMPLETE SYSTEM OVERVIEW
+' ==========================================
+
+@startuml Complete System Overview
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam package {
+    BackgroundColor #FFF3E0
+    BorderColor #F57C00
+}
+
+title Complete System Architecture Overview
+
+package "Authentication & Authorization" {
+    [Keycloak Server]
+    [Spring Security OAuth2]
+    [JWT Token Validation]
+}
+
+package "User Management" {
+    [User Entity]
+    [User Registration]
+    [User Login]
+    [Email Verification]
+    [Password Change]
+}
+
+package "Seller Management" {
+    [Seller Registration]
+    [Store (Seller-owned)]
+    [Seller Services]
+}
+
+package "Cooperative Management" {
+    [Cooperative Registration\n(6 Steps)]
+    [Cooperative Entity]
+    [Store (Cooperative-owned)]
+    [Cooperative Members]
+    [Member Management]
+}
+
+package "Product & Order Management" {
+    [Products]
+    [Categories]
+    [Orders]
+    [Cart]
+}
+
+package "Database" {
+    database "PostgreSQL" {
+        [users]
+        [stores]
+        [cooperatives]
+        [cooperative_registrations]
+        [seller_registrations]
+        [cooperative_members]
+        [products]
+        [orders]
+    }
+}
+
+[Keycloak Server] --> [User Registration]
+[User Registration] --> [PostgreSQL]
+[Seller Registration] --> [PostgreSQL]
+[Cooperative Registration\n(6 Steps)] --> [PostgreSQL]
+[Cooperative Entity] --> [Store (Cooperative-owned)]
+[Seller Registration] --> [Store (Seller-owned)]
+[Cooperative Members] --> [Cooperative Entity]
+[Spring Security OAuth2] --> [JWT Token Validation]
+
+note right of [Cooperative Registration\n(6 Steps)]
+  **6-Step Process:**
+  1. Basic HTX Info
+  2. Contact Info
+  3. Business Address
+  4. Representative Info
+  5. Legal Info
+  6. Business Info
+end note
+
+note bottom of [Store (Cooperative-owned)]
+  **Store Ownership:**
+  - seller_id (for Seller)
+  - cooperative_id (for Cooperative)
+  - XOR constraint
+end note
+
+@enduml
+
