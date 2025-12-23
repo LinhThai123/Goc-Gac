@@ -123,6 +123,13 @@ public class KeycloakClient {
      * Đăng ký user mới trong Keycloak (đơn giản như dự án tham khảo)
      */
     public Map<String, Object> registerUser(String email, String password, String fullName) {
+        return registerUser(email, password, fullName, false);
+    }
+
+    /**
+     * Đăng ký user mới trong Keycloak với khả năng set trạng thái email verified
+     */
+    public Map<String, Object> registerUser(String email, String password, String fullName, boolean emailVerified) {
         String adminToken = getAdminToken();
         String usersUrl = String.format("%s/admin/realms/%s/users", 
             keycloakServerUrl, realm);
@@ -137,7 +144,7 @@ public class KeycloakClient {
         user.put("email", email);
         user.put("firstName", fullName);
         user.put("enabled", true);
-        user.put("emailVerified", false);
+        user.put("emailVerified", emailVerified);
         
         // Set password trong credentials
         Map<String, Object> credentials = new HashMap<>();

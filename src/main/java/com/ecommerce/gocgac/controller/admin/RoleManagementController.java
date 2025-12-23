@@ -1,9 +1,12 @@
 package com.ecommerce.gocgac.controller.admin;
 
+import com.ecommerce.gocgac.dto.admin.CreatePermissionRequest;
 import com.ecommerce.gocgac.entity.Role;
 import com.ecommerce.gocgac.entity.Permission;
 import com.ecommerce.gocgac.service.auth.RoleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +33,18 @@ public class RoleManagementController {
     @GetMapping("/permissions")
     public ResponseEntity<List<Permission>> getAllPermissions() {
         return ResponseEntity.ok(roleService.getAllPermissions());
+    }
+    
+    @PostMapping("/permissions")
+    public ResponseEntity<Permission> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
+        Permission permission = roleService.createPermission(
+            request.getName(),
+            request.getCode(),
+            request.getDescription(),
+            request.getResource(),
+            request.getAction()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(permission);
     }
     
     @PostMapping

@@ -3,26 +3,38 @@ package com.ecommerce.gocgac.service.auth;
 import com.ecommerce.gocgac.common.response.AuthResponse;
 import com.ecommerce.gocgac.common.response.MessageResponse;
 import com.ecommerce.gocgac.dto.auth.ChangePasswordRequest;
+import com.ecommerce.gocgac.dto.auth.GoogleLoginRequest;
 import com.ecommerce.gocgac.dto.auth.LoginRequest;
 import com.ecommerce.gocgac.dto.auth.RegisterRequest;
 import com.ecommerce.gocgac.dto.user.UserDTO;
-import org.springframework.http.HttpStatus;
-import com.ecommerce.gocgac.entity.User;
 import com.ecommerce.gocgac.entity.Role;
+import com.ecommerce.gocgac.entity.SocialLogin;
+import com.ecommerce.gocgac.entity.User;
+import com.ecommerce.gocgac.entity.enums.SocialProvider;
 import com.ecommerce.gocgac.entity.enums.UserStatus;
+import com.ecommerce.gocgac.entity.enums.UserType;
 import com.ecommerce.gocgac.exception.AuthException;
 import com.ecommerce.gocgac.external.KeycloakClient;
-import com.ecommerce.gocgac.repository.UserRepository;
 import com.ecommerce.gocgac.repository.RoleRepository;
+import com.ecommerce.gocgac.repository.SocialLoginRepository;
+import com.ecommerce.gocgac.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,9 +44,19 @@ public class AuthService {
     
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final SocialLoginRepository socialLoginRepository;
     private final KeycloakClient keycloakClient;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+
+    @Value("${google.client-id:}")
+    private String googleClientId;
+
+    @Value("${google.token-info-url:https://oauth2.googleapis.com/tokeninfo}")
+    private String googleTokenInfoUrl;
+
+    @Value("${app.social.password-secret:change-me}")
+    private String socialPasswordSecret;
     
     /**
      * Đăng nhập
@@ -59,29 +81,7 @@ public class AuthService {
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
             
-            // Lấy roles của user
-            List<String> roles = user.getRoles().stream()
-                .map(Role::getCode)
-                .collect(Collectors.toList());
-            
-            // Tạo response
-            AuthResponse response = new AuthResponse();
-            response.setAccessToken((String) keycloakResponse.get("access_token"));
-            response.setRefreshToken((String) keycloakResponse.get("refresh_token"));
-            response.setExpiresIn(((Number) keycloakResponse.get("expires_in")).longValue());
-            
-            AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo();
-            userInfo.setId(user.getId());
-            userInfo.setEmail(user.getEmail());
-            userInfo.setFullName(user.getFullName());
-            userInfo.setPhone(user.getPhone());
-            userInfo.setAvatarUrl(user.getAvatarUrl());
-            userInfo.setRoles(roles);
-            userInfo.setUserType(user.getUserType().name());
-            
-            response.setUser(userInfo);
-            
-            return response;
+            return buildAuthResponse(user, keycloakResponse);
         } catch (AuthException e) {
             throw e;
         } catch (Exception e) {
@@ -128,12 +128,7 @@ public class AuthService {
             user.setLoyaltyPoints(0);
             
             // Gán role mặc định
-            Role defaultRole = roleRepository.findByCode(request.getUserType().name())
-                .orElseGet(() -> {
-                    // Nếu role chưa tồn tại, sử dụng role CUSTOMER
-                    return roleRepository.findByCode("CUSTOMER")
-                        .orElseThrow(() -> new AuthException("Role CUSTOMER không tồn tại trong hệ thống"));
-                });
+            Role defaultRole = resolveDefaultRole(request.getUserType());
             user.getRoles().add(defaultRole);
             // Gán role trong Keycloak (BẮT BUỘC - để user có thể đăng nhập và sử dụng API)
             try {
@@ -196,6 +191,47 @@ public class AuthService {
         } catch (Exception e) {
             log.error("Register error for email {}: {}", request.getEmail(), e.getMessage(), e);
             throw new AuthException("Đăng ký thất bại: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Đăng nhập / đăng ký bằng Google ID token
+     */
+    @Transactional
+    public AuthResponse loginWithGoogle(GoogleLoginRequest request) {
+        try {
+            GoogleUser googleUser = verifyGoogleIdToken(request.getIdToken());
+            String socialPassword = buildSocialPassword(googleUser.sub());
+
+            Optional<SocialLogin> existingSocial = socialLoginRepository
+                .findByProviderAndProviderUserId(SocialProvider.GOOGLE, googleUser.sub());
+
+            User user;
+            if (existingSocial.isPresent()) {
+                user = existingSocial.get().getUser();
+            } else {
+                // Nếu email đã tồn tại từ đăng ký thông thường, không tự động liên kết để tránh override mật khẩu
+                if (userRepository.findByEmail(googleUser.email()).isPresent()) {
+                    throw new AuthException("Email đã tồn tại, vui lòng đăng nhập bằng email/mật khẩu hoặc liên hệ hỗ trợ để liên kết Google.");
+                }
+                user = createUserFromGoogle(googleUser, socialPassword);
+            }
+
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                throw new AuthException("Tài khoản của bạn đã bị khóa");
+            }
+
+            Map<String, Object> keycloakResponse = keycloakClient.login(user.getEmail(), socialPassword);
+
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+
+            return buildAuthResponse(user, keycloakResponse);
+        } catch (AuthException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Google login error: {}", e.getMessage(), e);
+            throw new AuthException("Đăng nhập Google thất bại: " + e.getMessage());
         }
     }
     
@@ -269,5 +305,135 @@ public class AuthService {
             throw new AuthException("Đổi mật khẩu thất bại: " + e.getMessage());
         }
     }
+
+    private Role resolveDefaultRole(UserType userType) {
+        return roleRepository.findByCode(userType.name())
+            .orElseGet(() -> roleRepository.findByCode("CUSTOMER")
+                .orElseThrow(() -> new AuthException("Role CUSTOMER không tồn tại trong hệ thống")));
+    }
+
+    private AuthResponse buildAuthResponse(User user, Map<String, Object> keycloakResponse) {
+        List<String> roles = user.getRoles().stream()
+            .map(Role::getCode)
+            .collect(Collectors.toList());
+
+        AuthResponse response = new AuthResponse();
+        response.setAccessToken((String) keycloakResponse.get("access_token"));
+        response.setRefreshToken((String) keycloakResponse.get("refresh_token"));
+        response.setExpiresIn(((Number) keycloakResponse.get("expires_in")).longValue());
+
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo();
+        userInfo.setId(user.getId());
+        userInfo.setEmail(user.getEmail());
+        userInfo.setFullName(user.getFullName());
+        userInfo.setPhone(user.getPhone());
+        userInfo.setAvatarUrl(user.getAvatarUrl());
+        userInfo.setRoles(roles);
+        userInfo.setUserType(user.getUserType().name());
+
+        response.setUser(userInfo);
+        return response;
+    }
+
+    private GoogleUser verifyGoogleIdToken(String idToken) {
+        try {
+            String url = googleTokenInfoUrl + "?id_token=" + URLEncoder.encode(idToken, StandardCharsets.UTF_8);
+            RestTemplate restTemplate = new RestTemplate();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payload = restTemplate.getForObject(url, Map.class);
+
+            if (payload == null || payload.get("sub") == null) {
+                throw new AuthException("Token Google không hợp lệ");
+            }
+
+            String audience = payload.get("aud") != null ? payload.get("aud").toString() : "";
+            if (googleClientId != null && !googleClientId.isBlank() && !googleClientId.equals(audience)) {
+                throw new AuthException("Token Google không thuộc ứng dụng này");
+            }
+
+            Object expObj = payload.get("exp");
+            if (expObj != null) {
+                long exp = Long.parseLong(expObj.toString());
+                if (Instant.ofEpochSecond(exp).isBefore(Instant.now())) {
+                    throw new AuthException("Token Google đã hết hạn");
+                }
+            }
+
+            boolean emailVerified = Boolean.parseBoolean(String.valueOf(payload.getOrDefault("email_verified", "false")));
+
+            return new GoogleUser(
+                payload.get("sub").toString(),
+                payload.get("email") != null ? payload.get("email").toString() : "",
+                payload.getOrDefault("name", "").toString(),
+                payload.getOrDefault("picture", "").toString(),
+                emailVerified
+            );
+        } catch (HttpClientErrorException e) {
+            log.warn("Không thể xác thực token Google: {}", e.getResponseBodyAsString());
+            throw new AuthException("Token Google không hợp lệ");
+        } catch (AuthException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Google token verification error: {}", e.getMessage(), e);
+            throw new AuthException("Token Google không hợp lệ");
+        }
+    }
+
+    private User createUserFromGoogle(GoogleUser googleUser, String socialPassword) {
+        Map<String, Object> keycloakResult = keycloakClient.registerUser(
+            googleUser.email(),
+            socialPassword,
+            googleUser.fullName(),
+            googleUser.emailVerified()
+        );
+
+        String keycloakUserId = (String) keycloakResult.get("userId");
+        if (keycloakUserId == null) {
+            throw new AuthException("Không thể tạo tài khoản Google trong Keycloak");
+        }
+
+        User user = new User();
+        user.setEmail(googleUser.email());
+        user.setPasswordHash(passwordEncoder.encode(socialPassword));
+        user.setFullName(googleUser.fullName());
+        user.setAvatarUrl(googleUser.avatarUrl());
+        user.setUserType(UserType.CUSTOMER);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setKeycloakId(keycloakUserId);
+        user.setEmailVerified(googleUser.emailVerified());
+        user.setPhoneVerified(false);
+        user.setLoyaltyPoints(0);
+
+        Role defaultRole = resolveDefaultRole(UserType.CUSTOMER);
+        user.getRoles().add(defaultRole);
+        try {
+            keycloakClient.assignRoleToUser(keycloakUserId, defaultRole.getCode());
+        } catch (Exception e) {
+            log.error("Không thể gán role cho user Google {}: {}", keycloakUserId, e.getMessage(), e);
+            try {
+                keycloakClient.deleteUser(keycloakUserId);
+            } catch (Exception deleteException) {
+                log.warn("Không thể xóa user Google trong Keycloak sau khi gán role thất bại: {}", deleteException.getMessage());
+            }
+            throw new AuthException("Không thể gán role cho tài khoản Google");
+        }
+
+        SocialLogin socialLogin = new SocialLogin();
+        socialLogin.setProvider(SocialProvider.GOOGLE);
+        socialLogin.setProviderUserId(googleUser.sub());
+        socialLogin.setUser(user);
+        user.getSocialLogins().add(socialLogin);
+
+        user = userRepository.save(user);
+        userRepository.flush();
+        return user;
+    }
+
+    private String buildSocialPassword(String providerUserId) {
+        String secret = socialPasswordSecret != null ? socialPasswordSecret : "change-me";
+        return "SOCIAL-" + providerUserId + "-" + secret;
+    }
+
+    private record GoogleUser(String sub, String email, String fullName, String avatarUrl, boolean emailVerified) {}
 }
 

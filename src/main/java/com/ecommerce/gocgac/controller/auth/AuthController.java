@@ -3,6 +3,7 @@ package com.ecommerce.gocgac.controller.auth;
 import com.ecommerce.gocgac.common.response.AuthResponse;
 import com.ecommerce.gocgac.common.response.MessageResponse;
 import com.ecommerce.gocgac.dto.auth.ChangePasswordRequest;
+import com.ecommerce.gocgac.dto.auth.GoogleLoginRequest;
 import com.ecommerce.gocgac.dto.auth.LoginRequest;
 import com.ecommerce.gocgac.dto.auth.RefreshTokenRequest;
 import com.ecommerce.gocgac.dto.auth.RegisterRequest;
@@ -27,6 +28,13 @@ public class AuthController {
     @Operation(summary = "Đăng nhập", description = "Đăng nhập bằng email và mật khẩu")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login/google")
+    @Operation(summary = "Đăng nhập với Google", description = "Nhận Google ID token và trả về token hệ thống")
+    public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse response = authService.loginWithGoogle(request);
         return ResponseEntity.ok(response);
     }
     

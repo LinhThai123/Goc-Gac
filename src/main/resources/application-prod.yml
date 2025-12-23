@@ -163,3 +163,11 @@ management:
     diskspace:
       enabled: true
 
+app:
+  social:
+    password-secret: ${SOCIAL_PASSWORD_SECRET:change-me}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  token-info-url: https://oauth2.googleapis.com/tokeninfo
+
