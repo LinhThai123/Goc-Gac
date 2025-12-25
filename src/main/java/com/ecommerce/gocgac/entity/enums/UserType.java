@@ -5,6 +5,7 @@ public enum UserType {
     COOPERATIVE_MANAGER,   // Hợp tác xã (Chủ nhiệm hoặc Văn phòng HTX)
     SELLER,                // Người bán (Xã viên / Thành viên HTX)
     CUSTOMER,              // Khách mua hàng
+    MEMBER,                // Thành viên HTX (đã được approve)
     ACCOUNTANT,            // Kế toán HTX
     WAREHOUSE_STAFF,       // Nhân viên kho HTX
     SHIPPER,               // Giao hàng
