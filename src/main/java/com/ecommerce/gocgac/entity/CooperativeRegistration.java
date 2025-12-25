@@ -60,10 +60,10 @@ public class CooperativeRegistration {
     private String shortDescription;
     
     // ========== STEP 2: Thông tin liên hệ ==========
-    @Column(name = "contact_email", nullable = false)
+    @Column(name = "contact_email")
     private String contactEmail;
     
-    @Column(name = "contact_phone", nullable = false, length = 20)
+    @Column(name = "contact_phone", length = 20)
     private String contactPhone;
     
     @Column(name = "contact_phone_alt", length = 20)
@@ -76,22 +76,22 @@ public class CooperativeRegistration {
     private String facebookPage;
     
     // ========== STEP 3: Địa chỉ kinh doanh ==========
-    @Column(name = "full_address", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "full_address", columnDefinition = "TEXT")
     private String fullAddress;
     
-    @Column(name = "province", nullable = false, length = 100)
+    @Column(name = "province", length = 100)
     private String province;
     
-    @Column(name = "district", nullable = false, length = 100)
+    @Column(name = "district", length = 100)
     private String district;
     
-    @Column(name = "ward", nullable = false, length = 100)
+    @Column(name = "ward", length = 100)
     private String ward;
     
     @Column(name = "postal_code", length = 20)
     private String postalCode;
     
-    @Column(name = "show_map", nullable = false)
+    @Column(name = "show_map")
     private Boolean showMap = false;
     
     @Column(name = "latitude")
@@ -101,25 +101,25 @@ public class CooperativeRegistration {
     private Double longitude;
     
     // ========== STEP 4: Thông tin người đại diện ==========
-    @Column(name = "representative_name", nullable = false, length = 200)
+    @Column(name = "representative_name", length = 200)
     private String representativeName;
     
-    @Column(name = "representative_position", nullable = false, length = 100)
+    @Column(name = "representative_position", length = 100)
     private String representativePosition;
     
-    @Column(name = "representative_id_number", nullable = false, length = 50)
+    @Column(name = "representative_id_number", length = 50)
     private String representativeIdNumber;
     
-    @Column(name = "representative_id_issue_date", nullable = false)
+    @Column(name = "representative_id_issue_date")
     private LocalDate representativeIdIssueDate;
     
-    @Column(name = "representative_id_issue_place", nullable = false, length = 200)
+    @Column(name = "representative_id_issue_place", length = 200)
     private String representativeIdIssuePlace;
     
-    @Column(name = "representative_email", nullable = false)
+    @Column(name = "representative_email")
     private String representativeEmail;
     
-    @Column(name = "representative_phone", nullable = false, length = 20)
+    @Column(name = "representative_phone", length = 20)
     private String representativePhone;
     
     @Column(name = "representative_id_front_image", length = 500)
@@ -132,13 +132,13 @@ public class CooperativeRegistration {
     @Column(name = "tax_code", unique = true, length = 50)
     private String taxCode;
     
-    @Column(name = "registration_certificate_number", nullable = false, length = 100)
+    @Column(name = "registration_certificate_number", length = 100)
     private String registrationCertificateNumber;
     
-    @Column(name = "registration_certificate_issue_date", nullable = false)
+    @Column(name = "registration_certificate_issue_date")
     private LocalDate registrationCertificateIssueDate;
     
-    @Column(name = "registration_certificate_issue_place", nullable = false, length = 200)
+    @Column(name = "registration_certificate_issue_place", length = 200)
     private String registrationCertificateIssuePlace;
     
     @Column(name = "registration_certificate_image", length = 500)
@@ -154,15 +154,15 @@ public class CooperativeRegistration {
     @Column(name = "product_type")
     private List<String> productTypes = new ArrayList<>();
     
-    @Column(name = "main_product_description", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "main_product_description", columnDefinition = "TEXT")
     private String mainProductDescription;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "business_scale", nullable = false)
+    @Column(name = "business_scale")
     private BusinessScale businessScale;
     
-    @Column(name = "has_special_certification", nullable = false)
-    private Boolean hasSpecialCertification = false;
+    @Column(name = "has_special_certification")
+    private Boolean hasSpecialCertification;
     
     @Column(name = "special_certification_details", columnDefinition = "TEXT")
     private String specialCertificationDetails;

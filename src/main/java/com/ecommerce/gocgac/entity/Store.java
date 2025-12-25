@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "stores", indexes = {
     @Index(name = "idx_stores_seller", columnList = "seller_id"),
+    @Index(name = "idx_stores_cooperative", columnList = "cooperative_id"),
     @Index(name = "idx_status_stores", columnList = "status")
 })
 @Getter
@@ -24,8 +25,11 @@ public class Store {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "seller_id", nullable = false)
-    private Long sellerId;
+    @Column(name = "seller_id")
+    private Long sellerId; // Nullable - cho Seller độc lập
+    
+    @Column(name = "cooperative_id")
+    private Long cooperativeId; // Nullable - cho HTX
     
     @Column(name = "store_name", nullable = false)
     private String storeName;

@@ -5,14 +5,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface StoreRepository extends JpaRepository<Store, Long> {
     
     Optional<Store> findBySellerId(Long sellerId);
     
+    Optional<Store> findByCooperativeId(Long cooperativeId);
+    
     Optional<Store> findByStoreCode(String storeCode);
     
     boolean existsByStoreCode(String storeCode);
+
+    List<Store> findAll();
 }
 

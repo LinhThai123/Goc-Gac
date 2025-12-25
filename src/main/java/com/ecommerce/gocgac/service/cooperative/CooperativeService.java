@@ -4,13 +4,16 @@ import com.ecommerce.gocgac.common.response.MessageResponse;
 import com.ecommerce.gocgac.common.util.XssSanitizer;
 import com.ecommerce.gocgac.entity.Cooperative;
 import com.ecommerce.gocgac.entity.CooperativeRegistration;
+import com.ecommerce.gocgac.entity.Store;
 import com.ecommerce.gocgac.entity.User;
 import com.ecommerce.gocgac.entity.enums.ApprovalStatus;
+import com.ecommerce.gocgac.entity.enums.StoreStatus;
 import com.ecommerce.gocgac.entity.enums.UserType;
 import com.ecommerce.gocgac.exception.CooperativeException;
 import com.ecommerce.gocgac.external.KeycloakClient;
 import com.ecommerce.gocgac.repository.CooperativeRegistrationRepository;
 import com.ecommerce.gocgac.repository.CooperativeRepository;
+import com.ecommerce.gocgac.repository.StoreRepository;
 import com.ecommerce.gocgac.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +37,7 @@ public class CooperativeService {
     private final CooperativeRepository cooperativeRepository;
     private final CooperativeRegistrationRepository registrationRepository;
     private final UserRepository userRepository;
-    // private final StoreRepository storeRepository; // TODO: Uncomment khi đã migration Store entity
+    private final StoreRepository storeRepository;
     private final KeycloakClient keycloakClient;
     
     /**
@@ -77,14 +80,12 @@ public class CooperativeService {
         cooperative.setShortDescription(XssSanitizer.sanitizeHtml(registration.getShortDescription()));
         
         // Thông tin liên hệ
-        cooperative.setContactEmail(XssSanitizer.sanitize(registration.getContactEmail()));
-        cooperative.setContactPhone(XssSanitizer.sanitize(registration.getContactPhone()));
-        cooperative.setContactPhoneAlt(StringUtils.hasText(registration.getContactPhoneAlt()) ? 
-            XssSanitizer.sanitize(registration.getContactPhoneAlt()) : null);
-        cooperative.setWebsite(StringUtils.hasText(registration.getWebsite()) ? 
-            XssSanitizer.sanitize(registration.getWebsite()) : null);
-        cooperative.setFacebookPage(StringUtils.hasText(registration.getFacebookPage()) ? 
-            XssSanitizer.sanitize(registration.getFacebookPage()) : null);
+        // Email, phone, URL không cần sanitize - đã được validate và không chứa HTML
+        cooperative.setContactEmail(registration.getContactEmail());
+        cooperative.setContactPhone(registration.getContactPhone());
+        cooperative.setContactPhoneAlt(registration.getContactPhoneAlt());
+        cooperative.setWebsite(registration.getWebsite());
+        cooperative.setFacebookPage(registration.getFacebookPage());
         
         // Địa chỉ
         cooperative.setFullAddress(XssSanitizer.sanitize(registration.getFullAddress()));
@@ -103,8 +104,9 @@ public class CooperativeService {
         cooperative.setRepresentativeIdNumber(XssSanitizer.sanitize(registration.getRepresentativeIdNumber()));
         cooperative.setRepresentativeIdIssueDate(registration.getRepresentativeIdIssueDate());
         cooperative.setRepresentativeIdIssuePlace(XssSanitizer.sanitize(registration.getRepresentativeIdIssuePlace()));
-        cooperative.setRepresentativeEmail(XssSanitizer.sanitize(registration.getRepresentativeEmail()));
-        cooperative.setRepresentativePhone(XssSanitizer.sanitize(registration.getRepresentativePhone()));
+        // Email, phone không cần sanitize - đã được validate
+        cooperative.setRepresentativeEmail(registration.getRepresentativeEmail());
+        cooperative.setRepresentativePhone(registration.getRepresentativePhone());
         
         // Pháp lý
         cooperative.setTaxCode(StringUtils.hasText(registration.getTaxCode()) ? 
@@ -124,12 +126,15 @@ public class CooperativeService {
         
         cooperative = cooperativeRepository.save(cooperative);
         
-        // TODO: Tạo Store cho Cooperative
-        // LƯU Ý: Store entity hiện tại chỉ có seller_id (nullable = false)
-        // Cần migration để thêm cooperative_id vào Store entity trước khi uncomment code này
-        /*
+        // Tạo Store cho Cooperative (1 HTX = 1 Store)
+        // Validate cooperative chưa có Store
+        if (storeRepository.findByCooperativeId(cooperative.getId()).isPresent()) {
+            throw new CooperativeException("Cooperative đã có Store");
+        }
+        
         Store store = new Store();
-        store.setCooperativeId(cooperative.getId()); // Cần migration để thêm field này
+        store.setCooperativeId(cooperative.getId());
+        store.setSellerId(null); // Store của HTX không gắn với Seller cụ thể
         store.setStoreName(cooperative.getCooperativeName());
         store.setStoreCode(cooperative.getCooperativeCode());
         store.setDescription(cooperative.getShortDescription());
@@ -140,7 +145,8 @@ public class CooperativeService {
         store.setIsVerified(false);
         store.setIsBranded(false);
         store = storeRepository.save(store);
-        */
+        
+        log.info("Store {} created for Cooperative {}", store.getId(), cooperative.getId());
         
         // Update registration status
         registration.setStatus(ApprovalStatus.APPROVED);

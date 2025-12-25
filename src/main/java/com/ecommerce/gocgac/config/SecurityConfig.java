@@ -72,8 +72,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                 // Cooperative Registration endpoints - Cho phép CUSTOMER và SELLER đăng ký HTX
                 .requestMatchers("/api/cooperative/registration/**").authenticated()
+                // Cooperative Member endpoints - Cho phép CUSTOMER đăng ký thành viên HTX
+                .requestMatchers("/api/cooperative/member/**").authenticated()
                 // Cooperative Manager endpoints - Quản lý cooperative của mình
-                .requestMatchers("/api/cooperative/my-cooperative", "/api/cooperative/update")
+                .requestMatchers("/api/cooperative/my-cooperative", "/api/cooperative/update", 
+                                "/api/cooperative/members/**")
                     .hasAnyRole("COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Public Cooperative endpoints - Xem thông tin cooperative
                 .requestMatchers("/api/cooperative/**").permitAll()

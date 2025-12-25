@@ -84,7 +84,7 @@ public class AdminCooperativeController {
             @Valid @RequestBody ReviewCooperativeRequest request) {
         
         if (request.getStatus() != ApprovalStatus.APPROVED) {
-            throw new CooperativeException("Status phải là APPROVED");
+            throw new CooperativeException("Trạng thái phải là đã phê duyệt");
         }
         
         Long adminId = getCurrentUserId();
@@ -101,7 +101,7 @@ public class AdminCooperativeController {
             @Valid @RequestBody ReviewCooperativeRequest request) {
         
         if (request.getStatus() != ApprovalStatus.REJECTED) {
-            throw new CooperativeException("Status phải là REJECTED");
+            throw new CooperativeException("Trạng thái phải là đã từ chối");
         }
         
         if (request.getRejectionReason() == null || request.getRejectionReason().trim().isEmpty()) {

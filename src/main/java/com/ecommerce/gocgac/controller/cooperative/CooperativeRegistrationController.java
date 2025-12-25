@@ -2,7 +2,7 @@ package com.ecommerce.gocgac.controller.cooperative;
 
 import com.ecommerce.gocgac.common.response.MessageResponse;
 import com.ecommerce.gocgac.common.util.JwtUtils;
-import com.ecommerce.gocgac.dto.cooperative.*;
+import com.ecommerce.gocgac.dto.cooperative.CooperativeRegistrationRequest;
 import com.ecommerce.gocgac.entity.CooperativeRegistration;
 import com.ecommerce.gocgac.exception.CooperativeException;
 import com.ecommerce.gocgac.repository.UserRepository;
@@ -20,7 +20,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/cooperative/registration")
 @RequiredArgsConstructor
-@Tag(name = "Cooperative Registration", description = "API đăng ký HTX (6 bước)")
+@Tag(name = "Cooperative Registration", description = "API đăng ký HTX")
 public class CooperativeRegistrationController {
     
     private final CooperativeRegistrationService registrationService;
@@ -39,71 +39,21 @@ public class CooperativeRegistrationController {
             .orElseThrow(() -> new CooperativeException("User không tồn tại"));
     }
     
-    @PostMapping("/step1")
-    @Operation(summary = "Bước 1: Thông tin HTX cơ bản", description = "Tạo hoặc cập nhật thông tin HTX cơ bản")
-    public ResponseEntity<MessageResponse> step1(@Valid @RequestBody Step1Request request) {
+    /**
+     * Đăng ký HTX với tất cả thông tin trong 1 request (đơn giản hóa)
+     * Giống SellerRegistration - 1 request duy nhất
+     */
+    @PostMapping("")
+    @Operation(summary = "Đăng ký HTX", description = "Đăng ký HTX với tất cả thông tin trong 1 request")
+    public ResponseEntity<MessageResponse> register(@Valid @RequestBody CooperativeRegistrationRequest request) {
         Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.createOrUpdateStep1(userId, request);
-        return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
-                .body(response);
-    }
-    
-    @PostMapping("/step2")
-    @Operation(summary = "Bước 2: Thông tin liên hệ", description = "Cập nhật thông tin liên hệ")
-    public ResponseEntity<MessageResponse> step2(@Valid @RequestBody Step2Request request) {
-        Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.updateStep2(userId, request);
-        return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
-                .body(response);
-    }
-    
-    @PostMapping("/step3")
-    @Operation(summary = "Bước 3: Địa chỉ kinh doanh", description = "Cập nhật địa chỉ kinh doanh")
-    public ResponseEntity<MessageResponse> step3(@Valid @RequestBody Step3Request request) {
-        Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.updateStep3(userId, request);
-        return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
-                .body(response);
-    }
-    
-    @PostMapping("/step4")
-    @Operation(summary = "Bước 4: Thông tin người đại diện", description = "Cập nhật thông tin người đại diện")
-    public ResponseEntity<MessageResponse> step4(@Valid @RequestBody Step4Request request) {
-        Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.updateStep4(userId, request);
-        return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
-                .body(response);
-    }
-    
-    @PostMapping("/step5")
-    @Operation(summary = "Bước 5: Thông tin pháp lý", description = "Cập nhật thông tin pháp lý")
-    public ResponseEntity<MessageResponse> step5(@Valid @RequestBody Step5Request request) {
-        Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.updateStep5(userId, request);
-        return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
-                .body(response);
-    }
-    
-    @PostMapping("/step6")
-    @Operation(summary = "Bước 6: Thông tin kinh doanh", description = "Cập nhật thông tin kinh doanh")
-    public ResponseEntity<MessageResponse> step6(@Valid @RequestBody Step6Request request) {
-        Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.updateStep6(userId, request);
-        return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
-                .body(response);
-    }
-    
-    @PostMapping("/submit")
-    @Operation(summary = "Submit đơn đăng ký", description = "Gửi đơn đăng ký để admin phê duyệt")
-    public ResponseEntity<MessageResponse> submit(@Valid @RequestBody SubmitRegistrationRequest request) {
-        Long userId = getCurrentUserId();
-        MessageResponse response = registrationService.submitRegistration(userId, request.getRegistrationId());
+        MessageResponse response = registrationService.registerCooperative(userId, request);
         return ResponseEntity.status(response.getStatus() != null ? HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK)
                 .body(response);
     }
     
     @GetMapping("/my-registration")
-    @Operation(summary = "Lấy đơn đăng ký của tôi", description = "Lấy thông tin đơn đăng ký hiện tại (DRAFT hoặc PENDING)")
+    @Operation(summary = "Lấy đơn đăng ký của tôi", description = "Lấy thông tin đơn đăng ký hiện tại (PENDING)")
     public ResponseEntity<CooperativeRegistration> getMyRegistration() {
         Long userId = getCurrentUserId();
         Optional<CooperativeRegistration> registration = registrationService.getMyRegistration(userId);
@@ -123,4 +73,3 @@ public class CooperativeRegistrationController {
         return ResponseEntity.ok(registration);
     }
 }
-
