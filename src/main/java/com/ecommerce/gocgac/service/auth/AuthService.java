@@ -77,6 +77,9 @@ public class AuthService {
                 throw new AuthException("Tài khoản của bạn đã bị khóa");
             }
             
+            // Đồng bộ emailVerified từ Keycloak về database
+            syncEmailVerifiedFromKeycloak(user);
+            
             // Cập nhật thời gian đăng nhập cuối
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
@@ -222,6 +225,9 @@ public class AuthService {
             }
 
             Map<String, Object> keycloakResponse = keycloakClient.login(user.getEmail(), socialPassword);
+
+            // Đồng bộ emailVerified từ Keycloak về database
+            syncEmailVerifiedFromKeycloak(user);
 
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
@@ -432,6 +438,32 @@ public class AuthService {
     private String buildSocialPassword(String providerUserId) {
         String secret = socialPasswordSecret != null ? socialPasswordSecret : "change-me";
         return "SOCIAL-" + providerUserId + "-" + secret;
+    }
+
+    /**
+     * Đồng bộ emailVerified từ Keycloak về database
+     * Keycloak là source of truth cho email verification status
+     */
+    private void syncEmailVerifiedFromKeycloak(User user) {
+        if (user.getKeycloakId() == null) {
+            log.debug("User {} chưa có keycloakId, không thể đồng bộ emailVerified", user.getEmail());
+            return;
+        }
+
+        try {
+            boolean isVerifiedInKeycloak = keycloakClient.isEmailVerified(user.getKeycloakId());
+            
+            // Chỉ cập nhật nếu khác với database
+            if (isVerifiedInKeycloak != user.getEmailVerified()) {
+                user.setEmailVerified(isVerifiedInKeycloak);
+                log.info("Đã đồng bộ emailVerified cho user {}: {} -> {}", 
+                    user.getEmail(), user.getEmailVerified(), isVerifiedInKeycloak);
+            }
+        } catch (Exception e) {
+            // Log warning nhưng không throw exception để không ảnh hưởng đến flow chính
+            log.warn("Không thể đồng bộ emailVerified từ Keycloak cho user {}: {}", 
+                user.getEmail(), e.getMessage());
+        }
     }
 
     private record GoogleUser(String sub, String email, String fullName, String avatarUrl, boolean emailVerified) {}

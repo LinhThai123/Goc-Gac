@@ -180,6 +180,21 @@ public class CooperativeController {
             HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK).body(response);
     }
     
+    /**
+     * HTX Manager promote member thành seller (nhân viên bán hàng)
+     * Update role từ MEMBER → SELLER và update User.userType → SELLER
+     */
+    @PostMapping("/members/{memberId}/promote-to-seller")
+    @PreAuthorize("hasAnyRole('COOPERATIVE_MANAGER', 'SUPER_ADMIN')")
+    @Operation(summary = "Thăng cấp thành viên thành seller", 
+               description = "HTX Manager thăng cấp thành viên đã được approve thành nhân viên bán hàng (seller)")
+    public ResponseEntity<MessageResponse> promoteToSeller(@PathVariable Long memberId) {
+        Long cooperativeManagerId = getCurrentUserId();
+        MessageResponse response = memberService.promoteToSeller(memberId, cooperativeManagerId);
+        return ResponseEntity.status(response.getStatus() != null ? 
+            HttpStatus.valueOf(response.getStatus()) : HttpStatus.OK).body(response);
+    }
+    
     // TODO: Thêm endpoint PUT /api/cooperative/update để update cooperative info
     // Cần tạo UpdateCooperativeRequest DTO trước
 }

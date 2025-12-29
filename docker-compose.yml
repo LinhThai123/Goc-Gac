@@ -64,10 +64,17 @@ services:
       
       # Logging
       KC_LOG_LEVEL: INFO
+      
+      # Theme Configuration (Development - disable cache)
+      KC_SPI_THEME_STATIC_MAX_AGE: -1
+      KC_SPI_THEME_CACHE_THEMES: false
+      KC_SPI_THEME_CACHE_TEMPLATES: false
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
+      # Mount custom email theme
+      - ./keycloak-themes/gocgac-email:/opt/keycloak/themes/gocgac-email
     depends_on:
       postgres:
         condition: service_healthy
