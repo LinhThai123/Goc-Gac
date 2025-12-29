@@ -610,3 +610,4 @@ CUSTOMER đăng ký thành viên → PENDING → HTX Manager approve → APPROVE
 Thành viên đăng ký Seller → PENDING → Admin approve → APPROVED + Tạo Store (với cả seller_id và cooperative_id)
 ```
 
+

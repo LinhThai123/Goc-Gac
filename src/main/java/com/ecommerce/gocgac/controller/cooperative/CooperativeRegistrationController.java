@@ -41,7 +41,7 @@ public class CooperativeRegistrationController {
     
     /**
      * Đăng ký HTX với tất cả thông tin trong 1 request (đơn giản hóa)
-     * Giống SellerRegistration - 1 request duy nhất
+     * Đăng ký HTX - 1 request duy nhất với đầy đủ thông tin
      */
     @PostMapping("")
     @Operation(summary = "Đăng ký HTX", description = "Đăng ký HTX với tất cả thông tin trong 1 request")

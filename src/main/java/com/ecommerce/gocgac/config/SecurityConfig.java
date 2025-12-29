@@ -80,7 +80,7 @@ public class SecurityConfig {
                     .hasAnyRole("COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Public Cooperative endpoints - Xem thông tin cooperative
                 .requestMatchers("/api/cooperative/**").permitAll()
-                // Seller endpoints
+                // Seller endpoints - Cho phép SELLER, COOPERATIVE_MANAGER, SUPER_ADMIN
                 .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Customer endpoints
                 .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "SELLER", "COOPERATIVE_MANAGER", "SUPER_ADMIN")

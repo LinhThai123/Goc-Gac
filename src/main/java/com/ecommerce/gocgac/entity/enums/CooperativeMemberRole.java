@@ -8,7 +8,7 @@ public enum CooperativeMemberRole {
     MANAGER,             // Quản lý (phó chủ nhiệm, trưởng phòng, etc.)
     ACCOUNTANT,          // Kế toán HTX
     WAREHOUSE_STAFF,     // Nhân viên kho HTX
-    SALES_STAFF,         // Nhân viên bán hàng
+    SELLER,              // Nhân viên bán hàng (seller) - nhất quán với UserType.SELLER
     SHIPPER,             // Nhân viên giao hàng
     MODERATOR,           // Nhân viên duyệt nội dung
     SECRETARY,           // Thư ký HTX

@@ -30,7 +30,7 @@ public class CooperativeRegistrationService {
     
     /**
      * Đăng ký HTX với tất cả thông tin trong 1 request (đơn giản hóa)
-     * Giống SellerRegistration - 1 request duy nhất
+     * Đăng ký HTX - 1 request duy nhất với đầy đủ thông tin
      */
     @Transactional
     public MessageResponse registerCooperative(Long userId, CooperativeRegistrationRequest request) {

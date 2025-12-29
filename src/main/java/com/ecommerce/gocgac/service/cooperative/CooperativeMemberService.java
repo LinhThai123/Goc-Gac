@@ -13,6 +13,7 @@ import com.ecommerce.gocgac.exception.CooperativeException;
 import com.ecommerce.gocgac.external.KeycloakClient;
 import com.ecommerce.gocgac.repository.CooperativeMemberRepository;
 import com.ecommerce.gocgac.repository.CooperativeRepository;
+import com.ecommerce.gocgac.repository.StoreRepository;
 import com.ecommerce.gocgac.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class CooperativeMemberService {
     private final CooperativeMemberRepository memberRepository;
     private final CooperativeRepository cooperativeRepository;
     private final UserRepository userRepository;
+    private final StoreRepository storeRepository;
     private final KeycloakClient keycloakClient;
     
     /**
@@ -228,6 +230,78 @@ public class CooperativeMemberService {
         return members.stream()
             .map(this::mapToMemberResponse)
             .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * HTX Manager promote member thành seller (nhân viên bán hàng)
+     * Update role từ MEMBER → SELLER và update User.userType → SELLER
+     */
+    @Transactional
+    public MessageResponse promoteToSeller(Long memberId, Long cooperativeManagerId) {
+        CooperativeMember member = memberRepository.findById(memberId)
+            .orElseThrow(() -> new CooperativeException("Thành viên không tồn tại"));
+        
+        // Validate member phải ở trạng thái APPROVED
+        if (member.getStatus() != ApprovalStatus.APPROVED) {
+            throw new CooperativeException("Chỉ có thể promote thành viên đã được approve");
+        }
+        
+        // Validate cooperative manager
+        Cooperative cooperative = cooperativeRepository.findById(member.getCooperativeId())
+            .orElseThrow(() -> new CooperativeException("HTX không tồn tại"));
+        
+        if (!cooperative.getUserId().equals(cooperativeManagerId)) {
+            throw new CooperativeException("Bạn không có quyền thực hiện thao tác này");
+        }
+        
+        // Validate HTX đã có Store
+        if (storeRepository.findByCooperativeId(member.getCooperativeId()).isEmpty()) {
+            throw new CooperativeException("HTX chưa có Store. Vui lòng đợi HTX được duyệt và tạo Store trước.");
+        }
+        
+        // Validate user tồn tại
+        User user = userRepository.findById(member.getUserId())
+            .orElseThrow(() -> new CooperativeException("User không tồn tại"));
+        
+        // Update role từ MEMBER → SELLER
+        if (member.getRole() == CooperativeMemberRole.MEMBER) {
+            member.setRole(CooperativeMemberRole.SELLER);
+            memberRepository.save(member);
+            log.info("Member {} role đã được cập nhật từ MEMBER lên SELLER", memberId);
+        } else if (member.getRole() == CooperativeMemberRole.SELLER) {
+            throw new CooperativeException("Thành viên đã là nhân viên bán hàng (SELLER)");
+        }
+        
+        // Update User.userType từ MEMBER → SELLER
+        if (user.getUserType() == UserType.MEMBER || user.getUserType() == UserType.CUSTOMER) {
+            user.setUserType(UserType.SELLER);
+            userRepository.save(user);
+            log.info("User {} userType đã được cập nhật lên SELLER", user.getId());
+        }
+        
+        // Gán role "SELLER" trong Keycloak
+        try {
+            if (user.getKeycloakId() != null) {
+                keycloakClient.assignRoleToUser(user.getKeycloakId(), "SELLER");
+                log.info("Đã gán role SELLER cho user {} trong Keycloak", user.getKeycloakId());
+            } else {
+                log.warn("User {} không có keycloakId, không thể gán role trong Keycloak", user.getId());
+            }
+        } catch (Exception e) {
+            log.error("Không thể gán role SELLER trong Keycloak cho user {}: {}", 
+                user.getKeycloakId(), e.getMessage(), e);
+            // Không throw exception để không rollback transaction
+        }
+        
+        log.info("Member {} đã được promote thành seller (SELLER) của HTX {}", 
+            memberId, member.getCooperativeId());
+        
+        MessageResponse response = new MessageResponse();
+        response.setMessage("Thành viên đã được thăng cấp thành nhân viên bán hàng (seller).");
+        response.setStatus(HttpStatus.OK.value());
+        response.setData(member);
+        
+        return response;
     }
     
     /**

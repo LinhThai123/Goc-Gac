@@ -26,10 +26,10 @@ public class Store {
     private Long id;
     
     @Column(name = "seller_id")
-    private Long sellerId; // Nullable - cho Seller độc lập
+    private Long sellerId; // Nullable - Có thể dùng để link nhân viên seller, nhưng Store chỉ thuộc về HTX
     
     @Column(name = "cooperative_id")
-    private Long cooperativeId; // Nullable - cho HTX
+    private Long cooperativeId; // Nullable - Store thuộc về HTX (1 HTX = 1 Store)
     
     @Column(name = "store_name", nullable = false)
     private String storeName;
