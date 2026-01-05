@@ -7,12 +7,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth/email-verification")
 @RequiredArgsConstructor
@@ -73,6 +75,46 @@ public class EmailVerificationController {
         response.setStatus(HttpStatus.OK.value());
         
         return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/callback")
+    @Operation(summary = "Callback từ Keycloak sau khi verify email", 
+               description = "Endpoint này được gọi khi user click link verification từ Keycloak. " +
+                           "Keycloak sẽ redirect về endpoint này sau khi verify email thành công. " +
+                           "Endpoint này sẽ tự động đồng bộ email_verified từ false sang true cho tất cả users đã verify trong Keycloak nhưng chưa verify trong database.")
+    public ResponseEntity<?> handleKeycloakCallback(
+            @RequestParam(required = false) String key,
+            @RequestParam(required = false) String client_id) {
+        
+        try {
+            log.info("📧 Callback từ Keycloak sau khi verify email. Đang đồng bộ tất cả users chưa verified...");
+            // Giải pháp: Sync tất cả users chưa verified (chỉ update từ false sang true)
+            // Vì khi callback được gọi nghĩa là có user vừa verify, nên sync tất cả sẽ sync user đó
+            emailVerificationService.syncAllUnverifiedUsers();
+            
+            log.info("✅ Đã đồng bộ email verified status cho tất cả users chưa verified");
+            // Redirect về frontend với thông báo thành công
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", emailVerificationService.getFrontendUrl() + 
+                    "/login")
+                .build();
+                
+        } catch (Exception e) {
+            log.error("❌ Lỗi khi xử lý callback từ Keycloak: {}", e.getMessage(), e);
+            // Nếu có lỗi, vẫn redirect về frontend nhưng với thông báo lỗi
+            try {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", emailVerificationService.getFrontendUrl() + 
+                        "/email-verified?success=false&error=" + 
+                        java.net.URLEncoder.encode(e.getMessage(), "UTF-8"))
+                    .build();
+            } catch (java.io.UnsupportedEncodingException ex) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", emailVerificationService.getFrontendUrl() + 
+                        "/email-verified?success=false")
+                    .build();
+            }
+        }
     }
 }
 

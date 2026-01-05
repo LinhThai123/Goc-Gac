@@ -8,7 +8,6 @@
           <!-- Header -->
           <tr>
             <td align="center" style="padding: 40px 30px 20px; background: linear-gradient(135deg, #007bff, #0056b3);">
-              <img src="https://gocgac-htx.vn/assets/logo-white.png" alt="GocGac HTX" width="180" style="display: block; margin: 0 auto;" />
               <h1 style="color: #ffffff; font-size: 28px; margin: 20px 0 10px; font-family: Arial, Helvetica, sans-serif;">
                 Chào mừng đến với GocGac HTX!
               </h1>
@@ -41,16 +40,6 @@
                   </td>
                 </tr>
               </table>
-              
-              <p style="font-size: 14px; color: #666666; margin: 30px 0 20px; text-align: center;">
-                Nếu nút trên không hoạt động, bạn có thể copy và dán link sau vào trình duyệt:<br/>
-                <a href="${link}" style="color: #007bff; word-break: break-all;">${link}</a>
-              </p>
-              
-              <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">
-                Lưu ý: Link xác thực này sẽ hết hạn sau <strong>${linkExpiration} phút</strong>. Nếu bạn không phải là người đăng ký, vui lòng bỏ qua email này.
-              </p>
-              
               <hr style="border: none; border-top: 1px solid #eeeeee; margin: 30px 0;" />
               
               <p style="font-size: 14px; color: #555555; line-height: 1.6;">
