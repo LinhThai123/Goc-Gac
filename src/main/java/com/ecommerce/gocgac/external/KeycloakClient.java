@@ -684,21 +684,50 @@ public class KeycloakClient {
         HttpEntity<List<String>> request = new HttpEntity<>(actions, headers);
         
         try {
+            log.debug("Gửi email verification request đến Keycloak: URL={}, userId={}, clientId={}, redirectUri={}", 
+                sendEmailUrl, userId, clientId, redirectUri);
+            
             ResponseEntity<Void> response = restTemplate.exchange(
                 sendEmailUrl, HttpMethod.PUT, request, Void.class);
             
             if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Đã gửi email verification từ Keycloak cho user {}", userId);
+                log.info("✅ Đã gửi email verification từ Keycloak cho user {}", userId);
             } else {
-                log.warn("Không thể gửi email verification từ Keycloak. Status: {}", response.getStatusCode());
+                log.error("❌ Không thể gửi email verification từ Keycloak. Status: {}", response.getStatusCode());
                 throw new RuntimeException("Không thể gửi email verification từ Keycloak. Status: " + response.getStatusCode());
             }
         } catch (HttpClientErrorException e) {
             String errorBody = e.getResponseBodyAsString();
-            log.error("Lỗi khi gửi email verification từ Keycloak cho user {}: {} - {}", userId, e.getStatusCode(), errorBody);
+            int statusCode = e.getStatusCode().value();
+            
+            log.error("❌ Lỗi HTTP khi gửi email verification từ Keycloak cho user {}: Status={}, Error={}", 
+                userId, statusCode, errorBody);
+            
+            // Xử lý các lỗi phổ biến
+            if (statusCode == 400) {
+                // Kiểm tra nếu lỗi do redirect URI
+                if (errorBody != null && errorBody.contains("Invalid redirect uri")) {
+                    log.error("⚠️ Lỗi 400: Invalid redirect uri. Redirect URI chưa được cấu hình trong Keycloak client.");
+                    throw new RuntimeException("Invalid redirect uri.");
+                } else {
+                    log.error("⚠️ Lỗi 400: Có thể do cấu hình email trong Keycloak chưa đúng");
+                    throw new RuntimeException("Lỗi cấu hình: Keycloak không thể gửi email. Vui lòng kiểm tra cấu hình SMTP trong Keycloak Admin Console.");
+                }
+            } else if (statusCode == 403) {
+                log.error("⚠️ Lỗi 403: Không có quyền gửi email. Kiểm tra admin token và permissions.");
+                throw new RuntimeException("Không có quyền: Admin token không có quyền gửi email verification.");
+            } else if (statusCode == 404) {
+                log.error("⚠️ Lỗi 404: User không tồn tại trong Keycloak với ID: {}", userId);
+                throw new RuntimeException("User không tồn tại trong Keycloak.");
+            } else if (statusCode == 500) {
+                log.error("⚠️ Lỗi 500: Lỗi server Keycloak. Có thể do cấu hình email SMTP không đúng.");
+                throw new RuntimeException("Lỗi server Keycloak: Có thể do cấu hình SMTP chưa đúng. Vui lòng kiểm tra cấu hình email trong Keycloak.");
+            }
+            
             throw new RuntimeException("Không thể gửi email verification từ Keycloak: " + errorBody);
         } catch (Exception e) {
-            log.error("Lỗi khi gửi email verification từ Keycloak cho user {}: {}", userId, e.getMessage());
+            log.error("❌ Lỗi không xác định khi gửi email verification từ Keycloak cho user {}: {}", 
+                userId, e.getMessage(), e);
             throw new RuntimeException("Không thể gửi email verification từ Keycloak: " + e.getMessage());
         }
     }
@@ -821,6 +850,36 @@ public class KeycloakClient {
             return null;
         } catch (Exception e) {
             log.error("Lỗi khi lấy user ID từ email {}: {}", email, e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Lấy email từ Keycloak user ID
+     * 
+     * @param userId Keycloak user ID
+     * @return Email của user hoặc null nếu không tìm thấy
+     */
+    public String getEmailByUserId(String userId) {
+        String adminToken = getAdminToken();
+        String userUrl = String.format("%s/admin/realms/%s/users/%s", 
+            keycloakServerUrl, realm, userId);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        HttpEntity<String> request = new HttpEntity<>(headers);
+        
+        try {
+            @SuppressWarnings("unchecked")
+            ResponseEntity<Map<String, Object>> response = (ResponseEntity<Map<String, Object>>) 
+                (ResponseEntity<?>) restTemplate.exchange(userUrl, HttpMethod.GET, request, Map.class);
+            
+            if (response.getBody() != null) {
+                return (String) response.getBody().get("email");
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy email từ user ID {}: {}", userId, e.getMessage());
             return null;
         }
     }
