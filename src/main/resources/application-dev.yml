@@ -56,6 +56,12 @@ spring:
         jwt:
           issuer-uri: http://localhost:8080/realms/gocgac-htx
           jwk-set-uri: http://localhost:8080/realms/gocgac-htx/protocol/openid-connect/certs
+  
+  # Elasticsearch Configuration - Development
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 10s
+    socket-timeout: 30s
 
 # Server Configuration - Development
 server:
@@ -132,4 +138,12 @@ app:
 google:
   client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
   token-info-url: https://oauth2.googleapis.com/tokeninfo
+
+# MINIO Configuration - Development
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin123}
+  bucket-name: ${MINIO_BUCKET_NAME:gocgac}
+  url: ${MINIO_URL:http://localhost:9000}
 
