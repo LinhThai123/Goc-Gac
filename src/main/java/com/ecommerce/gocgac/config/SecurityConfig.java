@@ -84,6 +84,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Customer endpoints
                 .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "SELLER", "COOPERATIVE_MANAGER", "SUPER_ADMIN")
+                // Storage endpoints - Yêu cầu authentication
+                .requestMatchers("/api/storage/**").authenticated()
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )
