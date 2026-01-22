@@ -23,6 +23,7 @@ import com.ecommerce.gocgac.repository.CooperativeRepository;
 import com.ecommerce.gocgac.repository.ProductRepository;
 import com.ecommerce.gocgac.repository.ProductVariantRepository;
 import com.ecommerce.gocgac.repository.ShopCatalogRepository;
+import com.ecommerce.gocgac.repository.StoreCategoryRepository;
 import com.ecommerce.gocgac.repository.StoreRepository;
 import com.ecommerce.gocgac.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,7 @@ public class ProductService {
     private final UserRepository userRepository;
     private final CatalogProductRepository catalogProductRepository;
     private final ShopCatalogRepository shopCatalogRepository;
+    private final StoreCategoryRepository storeCategoryRepository;
     private final ProductSearchService productSearchService;
     
     /**
@@ -163,6 +165,16 @@ public class ProductService {
             }
         }
         
+        // Validate storeCategoryId nếu có
+        Long storeCategoryId = request.getStoreCategoryId();
+        if (storeCategoryId != null) {
+            // Kiểm tra storeCategoryId có tồn tại và thuộc về store của user không
+            if (!storeCategoryRepository.existsByIdAndStoreId(storeCategoryId, storeId)) {
+                log.warn("StoreCategoryId {} không tồn tại hoặc không thuộc về store {}, sẽ set null", storeCategoryId, storeId);
+                storeCategoryId = null; // Set null nếu không hợp lệ
+            }
+        }
+        
         // Xác định hasVariants
         boolean hasVariants = request.getSkus().size() > 1;
         
@@ -170,7 +182,7 @@ public class ProductService {
         Product product = new Product();
         product.setStoreId(storeId);
         product.setCategoryId(request.getCategoryId());
-        product.setStoreCategoryId(request.getStoreCategoryId());
+        product.setStoreCategoryId(storeCategoryId);
         product.setProductCode(productCode);
         product.setProductName(XssSanitizer.sanitize(request.getProductName()));
         product.setSlug(slug);
@@ -402,7 +414,13 @@ public class ProductService {
         }
         
         if (request.getStoreCategoryId() != null) {
-            product.setStoreCategoryId(request.getStoreCategoryId());
+            // Validate storeCategoryId nếu có
+            Long storeCategoryId = request.getStoreCategoryId();
+            if (!storeCategoryRepository.existsByIdAndStoreId(storeCategoryId, storeId)) {
+                log.warn("StoreCategoryId {} không tồn tại hoặc không thuộc về store {}, sẽ set null", storeCategoryId, storeId);
+                storeCategoryId = null; // Set null nếu không hợp lệ
+            }
+            product.setStoreCategoryId(storeCategoryId);
         }
         
         if (request.getDurationHours() != null) {

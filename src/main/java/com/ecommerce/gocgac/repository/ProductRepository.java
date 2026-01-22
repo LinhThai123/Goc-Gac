@@ -158,5 +158,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     @Query("SELECT p FROM Product p WHERE p.id IN :productIds AND p.approvalStatus = 'APPROVED' AND p.status = 'ACTIVE'")
     List<Product> findPublicProductsByIdsList(@Param("productIds") List<Long> productIds);
+    
+    /**
+     * Đếm số lượng products của store theo storeCategoryId
+     */
+    long countByStoreIdAndStoreCategoryId(Long storeId, Long storeCategoryId);
 }
 

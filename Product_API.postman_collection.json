@@ -1,0 +1,781 @@
+{
+  "info": {
+    "name": "Product API - Complete Test Collection",
+    "description": "Postman collection cho testing Product API - CRUD, Public endpoints, và Elasticsearch Search",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8086/api/products",
+      "type": "string"
+    },
+    {
+      "key": "publicBaseUrl",
+      "value": "http://localhost:8086/api/products/public",
+      "type": "string"
+    },
+    {
+      "key": "searchBaseUrl",
+      "value": "http://localhost:8086/api/products/search",
+      "type": "string"
+    },
+    {
+      "key": "sellerToken",
+      "value": "your_seller_token_here",
+      "type": "string"
+    },
+    {
+      "key": "superAdminToken",
+      "value": "your_super_admin_token_here",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "storeId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "CREATE",
+      "item": [
+        {
+          "name": "1. Tạo sản phẩm vật lý với 1 SKU",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('productId', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Áo thun nam cổ tròn\",\n  \"productCode\": \"PROD-001\",\n  \"slug\": \"ao-thun-nam-co-tron\",\n  \"description\": \"Áo thun nam chất liệu cotton 100%, thoáng mát, dễ giặt\",\n  \"shortDescription\": \"Áo thun nam cotton 100%\",\n  \"productType\": \"PHYSICAL\",\n  \"categoryId\": {{categoryId}},\n  \"storeCategoryId\": 1,\n  \"isCombo\": false,\n  \"ocopCertified\": false,\n  \"hasOriginTracking\": false,\n  \"skus\": [\n    {\n      \"sku\": \"SKU-001\",\n      \"variantName\": \"Áo thun - Size M\",\n      \"size\": \"M\",\n      \"color\": \"Trắng\",\n      \"material\": \"Cotton\",\n      \"price\": 150000,\n      \"comparePrice\": 200000,\n      \"costPrice\": 100000,\n      \"stockQuantity\": 100,\n      \"imageUrl\": \"https://example.com/images/ao-thun-m-trang.jpg\",\n      \"weightKg\": 0.2,\n      \"lengthCm\": 70,\n      \"widthCm\": 50,\n      \"heightCm\": 2,\n      \"status\": \"active\",\n      \"displayOrder\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Tạo sản phẩm vật lý với nhiều SKU",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Áo thun nam cổ tròn - Multi SKU\",\n  \"productType\": \"PHYSICAL\",\n  \"categoryId\": {{categoryId}},\n  \"skus\": [\n    {\n      \"sku\": \"SKU-002-M\",\n      \"variantName\": \"Áo thun - Size M - Trắng\",\n      \"size\": \"M\",\n      \"color\": \"Trắng\",\n      \"price\": 150000,\n      \"stockQuantity\": 50,\n      \"status\": \"active\"\n    },\n    {\n      \"sku\": \"SKU-002-L\",\n      \"variantName\": \"Áo thun - Size L - Trắng\",\n      \"size\": \"L\",\n      \"color\": \"Trắng\",\n      \"price\": 150000,\n      \"stockQuantity\": 50,\n      \"status\": \"active\"\n    },\n    {\n      \"sku\": \"SKU-002-M-RED\",\n      \"variantName\": \"Áo thun - Size M - Đỏ\",\n      \"size\": \"M\",\n      \"color\": \"Đỏ\",\n      \"price\": 150000,\n      \"stockQuantity\": 30,\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Tạo sản phẩm khóa học (DIGITAL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Khóa học lập trình Java cơ bản\",\n  \"productType\": \"DIGITAL\",\n  \"categoryId\": 2,\n  \"description\": \"Khóa học lập trình Java từ cơ bản đến nâng cao\",\n  \"shortDescription\": \"Khóa học Java cơ bản\",\n  \"durationHours\": 40,\n  \"accessPeriodDays\": 365,\n  \"isUnlimitedAccess\": false,\n  \"deliveryMethod\": \"online_access\",\n  \"skus\": [\n    {\n      \"sku\": \"COURSE-JAVA-001\",\n      \"variantName\": \"Khóa học Java - Gói cơ bản\",\n      \"price\": 2000000,\n      \"comparePrice\": 3000000,\n      \"stockQuantity\": 999,\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "4. Tạo sản phẩm OCOP certified",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Mật ong rừng nguyên chất\",\n  \"productType\": \"PHYSICAL\",\n  \"categoryId\": 3,\n  \"ocopCertified\": true,\n  \"ocopLevel\": \"3 sao\",\n  \"isVerified\": true,\n  \"hasOriginTracking\": true,\n  \"skus\": [\n    {\n      \"sku\": \"HONEY-500G\",\n      \"variantName\": \"Mật ong - 500g\",\n      \"weightVariant\": \"500g\",\n      \"price\": 150000,\n      \"stockQuantity\": 100,\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "5. Tạo sản phẩm không có SKU (Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Sản phẩm không có SKU\",\n  \"productType\": \"PHYSICAL\",\n  \"skus\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET",
+      "item": [
+        {
+          "name": "1. Lấy danh sách sản phẩm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}?page=0&size=20&sortBy=createdAt&sortDir=DESC&includeSkus=true",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortDir",
+                  "value": "DESC"
+                },
+                {
+                  "key": "includeSkus",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Lấy danh sách với filter status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}?status=ACTIVE&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Lấy danh sách với filter productType",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}?productType=PHYSICAL&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "productType",
+                  "value": "PHYSICAL"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Lấy danh sách với keyword search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}?keyword=áo thun&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "áo thun"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Lấy thông tin chi tiết sản phẩm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "6. Lấy sản phẩm không tồn tại (Error)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "UPDATE",
+      "item": [
+        {
+          "name": "1. Cập nhật tên sản phẩm",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Áo thun nam cổ tròn - Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Cập nhật giá SKU",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skus\": [\n    {\n      \"id\": 1,\n      \"sku\": \"SKU-001\",\n      \"price\": 180000,\n      \"stockQuantity\": 100\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Thêm SKU mới vào sản phẩm",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skus\": [\n    {\n      \"id\": 1,\n      \"sku\": \"SKU-001\",\n      \"price\": 150000,\n      \"stockQuantity\": 100\n    },\n    {\n      \"sku\": \"SKU-001-XL\",\n      \"variantName\": \"Áo thun - Size XL\",\n      \"size\": \"XL\",\n      \"price\": 150000,\n      \"stockQuantity\": 50,\n      \"status\": \"active\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "4. Cập nhật nhiều fields",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Áo thun nam cổ tròn - Premium\",\n  \"description\": \"Áo thun nam chất liệu cotton 100% cao cấp\",\n  \"shortDescription\": \"Áo thun nam cotton premium\",\n  \"ocopCertified\": true,\n  \"ocopLevel\": \"4 sao\",\n  \"isVerified\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE",
+      "item": [
+        {
+          "name": "1. Xóa mềm sản phẩm ACTIVE",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Xóa cứng sản phẩm INACTIVE",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{productId}}"]
+            },
+            "description": "Sản phẩm phải có status = INACTIVE để test xóa cứng"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PUBLIC",
+      "item": [
+        {
+          "name": "1. Lấy danh sách sản phẩm public",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{publicBaseUrl}}?page=0&size=20",
+              "host": ["{{publicBaseUrl}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Lấy sản phẩm public theo ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{publicBaseUrl}}/{{productId}}",
+              "host": ["{{publicBaseUrl}}"],
+              "path": ["{{productId}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Lấy sản phẩm public theo slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{publicBaseUrl}}/slug/ao-thun-nam-co-tron",
+              "host": ["{{publicBaseUrl}}"],
+              "path": ["slug", "ao-thun-nam-co-tron"]
+            }
+          }
+        },
+        {
+          "name": "4. Lấy sản phẩm public theo storeId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{publicBaseUrl}}/store/{{storeId}}?page=0&size=20",
+              "host": ["{{publicBaseUrl}}"],
+              "path": ["store", "{{storeId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Lấy sản phẩm public theo categoryId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{publicBaseUrl}}/category/{{categoryId}}?page=0&size=20",
+              "host": ["{{publicBaseUrl}}"],
+              "path": ["category", "{{categoryId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Lấy sản phẩm public theo catalogId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{publicBaseUrl}}/catalog/1?page=0&size=20",
+              "host": ["{{publicBaseUrl}}"],
+              "path": ["catalog", "1"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SEARCH",
+      "item": [
+        {
+          "name": "1. Search với keyword (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyword\": \"áo thun\",\n  \"page\": 0,\n  \"size\": 20,\n  \"highlight\": true\n}"
+            },
+            "url": {
+              "raw": "{{searchBaseUrl}}",
+              "host": ["{{searchBaseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Search với filters (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyword\": \"áo\",\n  \"categoryId\": {{categoryId}},\n  \"minPrice\": 100000,\n  \"maxPrice\": 500000,\n  \"sizes\": [\"M\", \"L\"],\n  \"colors\": [\"Trắng\", \"Đỏ\"],\n  \"ocopCertified\": true,\n  \"sortBy\": \"price_asc\",\n  \"page\": 0,\n  \"size\": 20\n}"
+            },
+            "url": {
+              "raw": "{{searchBaseUrl}}",
+              "host": ["{{searchBaseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Search với GET method",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{searchBaseUrl}}?keyword=áo thun&categoryId={{categoryId}}&minPrice=100000&maxPrice=500000&sortBy=price_asc&page=0&size=20",
+              "host": ["{{searchBaseUrl}}"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "áo thun"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "100000"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "500000"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "price_asc"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Search theo storeId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": {{storeId}},\n  \"sortBy\": \"sold_count\",\n  \"sortDir\": \"DESC\",\n  \"page\": 0,\n  \"size\": 20\n}"
+            },
+            "url": {
+              "raw": "{{searchBaseUrl}}",
+              "host": ["{{searchBaseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "5. Search sản phẩm OCOP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ocopCertified\": true,\n  \"isVerified\": true,\n  \"sortBy\": \"rating\",\n  \"sortDir\": \"DESC\",\n  \"page\": 0,\n  \"size\": 20\n}"
+            },
+            "url": {
+              "raw": "{{searchBaseUrl}}",
+              "host": ["{{searchBaseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "6. Re-index tất cả sản phẩm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superAdminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{searchBaseUrl}}/reindex",
+              "host": ["{{searchBaseUrl}}"],
+              "path": ["reindex"]
+            }
+          }
+        },
+        {
+          "name": "7. Index một sản phẩm cụ thể",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{searchBaseUrl}}/index/{{productId}}",
+              "host": ["{{searchBaseUrl}}"],
+              "path": ["index", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
