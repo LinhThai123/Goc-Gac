@@ -80,6 +80,14 @@ public class SecurityConfig {
                     .hasAnyRole("COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Public Cooperative endpoints - Xem thông tin cooperative
                 .requestMatchers("/api/cooperative/**").permitAll()
+                // Public Product endpoints - Cho phép người dùng chưa đăng nhập và người mua hàng xem sản phẩm
+                .requestMatchers("/api/products/public/**").permitAll()
+                // Product Search endpoints - Public search với Elasticsearch
+                .requestMatchers("/api/products/search").permitAll()
+                // Public Category endpoints
+                .requestMatchers("/api/categories/public/**").permitAll()
+                // Public Channel endpoints
+                .requestMatchers("/api/channels/**").permitAll()
                 // Seller endpoints - Cho phép SELLER, COOPERATIVE_MANAGER, SUPER_ADMIN
                 .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Customer endpoints

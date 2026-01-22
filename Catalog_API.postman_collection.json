@@ -1,0 +1,557 @@
+{
+  "info": {
+    "name": "Catalog API - CRUD Tests",
+    "description": "Postman collection cho testing Catalog CRUD API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8086/api/catalogs",
+      "type": "string"
+    },
+    {
+      "key": "cooperativeManagerToken",
+      "value": "your_cooperative_manager_token_here",
+      "type": "string"
+    },
+    {
+      "key": "sellerToken",
+      "value": "your_seller_token_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "CREATE",
+      "item": [
+        {
+          "name": "1. Tạo catalog đầy đủ thông tin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Nông Sản Tươi Sống\",\n  \"catalogCode\": \"CAT-NS-001\",\n  \"shortDescription\": \"Danh mục nông sản tươi sống chất lượng cao\",\n  \"description\": \"Catalog chuyên cung cấp các sản phẩm nông sản tươi sống, đảm bảo chất lượng và an toàn thực phẩm.\",\n  \"imageUrl\": \"https://example.com/images/catalog-image.jpg\",\n  \"bannerUrl\": \"https://example.com/images/catalog-banner.jpg\",\n  \"displayOrder\": 1,\n  \"isFeatured\": true,\n  \"catalogSettings\": \"{\\\"defaultSort\\\":\\\"price_asc\\\",\\\"showFilters\\\":true,\\\"itemsPerPage\\\":20}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Tạo catalog tối thiểu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Thời Trang Nam\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Tạo catalog với catalogSettings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Catalog với Settings\",\n  \"catalogSettings\": \"{\\\"defaultSort\\\":\\\"name_asc\\\",\\\"showFilters\\\":false,\\\"itemsPerPage\\\":12}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: catalogName rỗng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"\",\n  \"catalogCode\": \"CAT-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: catalogCode không hợp lệ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Test Catalog\",\n  \"catalogCode\": \"cat-invalid-code\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "READ",
+      "item": [
+        {
+          "name": "1. Lấy tất cả catalogs của mình",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Lấy catalog theo ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Catalog không tồn tại",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "UPDATE",
+      "item": [
+        {
+          "name": "1. Cập nhật tất cả các trường",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Nông Sản Tươi Sống - Đã cập nhật\",\n  \"catalogCode\": \"CAT-NS-001-UPDATED\",\n  \"shortDescription\": \"Mô tả ngắn đã cập nhật\",\n  \"description\": \"Mô tả đầy đủ đã được cập nhật\",\n  \"imageUrl\": \"https://example.com/images/catalog-image-new.jpg\",\n  \"bannerUrl\": \"https://example.com/images/catalog-banner-new.jpg\",\n  \"displayOrder\": 2,\n  \"isFeatured\": false,\n  \"isActive\": true,\n  \"catalogSettings\": \"{\\\"defaultSort\\\":\\\"price_desc\\\",\\\"showFilters\\\":true}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "2. Cập nhật chỉ catalogName",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Tên mới\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "3. Set isFeatured = true",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "4. Deactivate catalog",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "5. Cập nhật catalogSettings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogSettings\": \"{\\\"defaultSort\\\":\\\"name_desc\\\",\\\"showFilters\\\":false,\\\"itemsPerPage\\\":24}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Catalog không tồn tại",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"catalogName\": \"Test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE",
+      "item": [
+        {
+          "name": "1. Xóa catalog (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Catalog không tồn tại",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRODUCT_MANAGEMENT",
+      "item": [
+        {
+          "name": "1. Lấy danh sách products trong catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products"]
+            }
+          }
+        },
+        {
+          "name": "2. Thêm product vào catalog",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"displayOrder\": 1,\n  \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products"]
+            }
+          }
+        },
+        {
+          "name": "3. Thêm product tối thiểu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products"]
+            }
+          }
+        },
+        {
+          "name": "4. Kiểm tra product trong catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1/products/1/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products", "1", "check"]
+            }
+          }
+        },
+        {
+          "name": "5. Xóa product khỏi catalog",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1/products/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products", "1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Thêm product trùng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Product không tồn tại",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 99999\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["1", "products"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

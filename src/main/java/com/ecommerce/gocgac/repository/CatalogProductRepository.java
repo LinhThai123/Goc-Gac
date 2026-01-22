@@ -63,6 +63,11 @@ public interface CatalogProductRepository extends JpaRepository<CatalogProduct, 
     void deleteAllByCatalogId(Long catalogId);
     
     /**
+     * Xóa tất cả catalogs chứa product (xóa product khỏi tất cả catalogs)
+     */
+    void deleteAllByProductId(Long productId);
+    
+    /**
      * Tìm products trong catalog với pagination (sử dụng native query)
      */
     @Query(value = "SELECT * FROM catalog_products WHERE catalog_id = :catalogId AND is_active = true ORDER BY display_order ASC, added_at DESC", nativeQuery = true)

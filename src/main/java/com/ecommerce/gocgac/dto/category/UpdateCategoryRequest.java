@@ -1,5 +1,6 @@
 package com.ecommerce.gocgac.dto.category;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -25,7 +26,7 @@ public class UpdateCategoryRequest {
     @Size(max = 500, message = "Image URL không được vượt quá 500 ký tự")
     private String imageUrl;
     
-    @Size(min = 0, message = "Display order phải >= 0")
+    @Min(value = 0, message = "Display order phải >= 0")
     private Integer displayOrder;
     
     private Boolean isActive;

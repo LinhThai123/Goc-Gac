@@ -2,6 +2,7 @@ package com.ecommerce.gocgac.entity;
 
 import com.ecommerce.gocgac.entity.enums.ApprovalStatus;
 import com.ecommerce.gocgac.entity.enums.ProductStatus;
+import com.ecommerce.gocgac.entity.enums.ProductType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +18,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_category_products", columnList = "category_id"),
     @Index(name = "idx_status_products", columnList = "status"),
     @Index(name = "idx_approval", columnList = "approval_status"),
-    @Index(name = "idx_slug_products", columnList = "slug")
+    @Index(name = "idx_slug_products", columnList = "slug"),
+    @Index(name = "idx_product_type", columnList = "product_type")
 })
 @Getter
 @Setter
@@ -53,14 +55,31 @@ public class Product {
     @Column(name = "short_description", columnDefinition = "TEXT")
     private String shortDescription;
     
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal price;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_type", nullable = false)
+    private ProductType productType = ProductType.PHYSICAL;
     
-    @Column(name = "compare_price", precision = 15, scale = 2)
-    private BigDecimal comparePrice;
+    // Lưu ý: Vì mỗi Product đều bắt buộc có ít nhất 1 SKU,
+    // nên các thông tin về giá, tồn kho, kích thước, trọng lượng
+    // sẽ được quản lý ở cấp SKU (ProductVariant)
+    // Product chỉ lưu thông tin chung về sản phẩm
     
-    @Column(name = "cost_price", precision = 15, scale = 2)
-    private BigDecimal costPrice;
+    // Các trường cho sản phẩm phi vật lý (khóa học, dịch vụ...)
+    @Column(name = "duration_hours")
+    private Integer durationHours; // Thời lượng (giờ) - cho khóa học
+    
+    @Column(name = "access_period_days")
+    private Integer accessPeriodDays; // Thời gian truy cập (ngày)
+    
+    @Column(name = "is_unlimited_access")
+    private Boolean isUnlimitedAccess = false; // Truy cập không giới hạn
+    
+    @Column(name = "delivery_method", length = 50)
+    private String deliveryMethod; // Phương thức giao hàng: "download", "email", "online_access", etc.
+    
+    // Cho biết sản phẩm có nhiều biến thể (SKU) hay không
+    @Column(name = "has_variants", nullable = false)
+    private Boolean hasVariants = false;
     
     @Column(name = "is_combo", nullable = false)
     private Boolean isCombo = false;
@@ -84,8 +103,8 @@ public class Product {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
     
-    @Column(name = "stock_quantity", nullable = false)
-    private Integer stockQuantity = 0;
+    // Lưu ý: Tồn kho được quản lý ở cấp SKU (ProductVariant)
+    // Product không lưu stock_quantity vì mỗi Product đều có ít nhất 1 SKU
     
     @Column(name = "sold_count", nullable = false)
     private Integer soldCount = 0;
@@ -114,6 +133,9 @@ public class Product {
     
     @Column(name = "approved_by")
     private Long approvedBy;
+    
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt; // Thời gian xóa mềm
     
     @PreUpdate
     public void preUpdate() {

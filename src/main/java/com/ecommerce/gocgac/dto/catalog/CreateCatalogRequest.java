@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Min;
 
 @Data
 @NoArgsConstructor
@@ -29,7 +30,7 @@ public class CreateCatalogRequest {
     
     private String bannerUrl;
     
-    @Size(min = 0, message = "Display order phải >= 0")
+    @Min(value = 0, message = "Display order phải >= 0")
     private Integer displayOrder = 0;
     
     private Boolean isFeatured = false;
