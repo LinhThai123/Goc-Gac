@@ -1,0 +1,799 @@
+{
+	"info": {
+		"_postman_id": "store-category-api-collection",
+		"name": "Store Category API",
+		"description": "Postman collection cho Store Category API - CRUD operations cho store categories",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Create Store Category",
+			"item": [
+				{
+					"name": "Create Root Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has category data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data.parentId).to.be.null;",
+									"    pm.expect(jsonData.data.level).to.eql(1);",
+									"});",
+									"",
+									"// Save category ID for later use",
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"root_category_id\", jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"Hàng mới về\",\n  \"parentId\": null,\n  \"description\": \"Danh mục hàng mới về\",\n  \"displayOrder\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories"
+							]
+						},
+						"description": "Tạo root store category (parentId = null)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Child Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has child category data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data.parentId).to.not.be.null;",
+									"    pm.expect(jsonData.data.level).to.be.above(1);",
+									"});",
+									"",
+									"// Save child category ID",
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"child_category_id\", jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"Áo thun bán chạy\",\n  \"parentId\": {{root_category_id}},\n  \"description\": \"Danh mục áo thun bán chạy\",\n  \"displayOrder\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories"
+							]
+						},
+						"description": "Tạo child store category với parentId"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category - Empty Name (Error)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message contains validation error\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('Tên danh mục');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"\",\n  \"parentId\": null,\n  \"displayOrder\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories"
+							]
+						},
+						"description": "Test validation: categoryName không được để trống"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category - Invalid Parent (Error)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message contains parent error\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('Parent');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"Category con\",\n  \"parentId\": 99999,\n  \"displayOrder\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories"
+							]
+						},
+						"description": "Test validation: parentId không tồn tại"
+					},
+					"response": []
+				}
+			],
+			"description": "Test cases cho việc tạo store category"
+		},
+		{
+			"name": "Get Store Categories",
+			"item": [
+				{
+					"name": "Get All Store Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has categories array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories"
+							]
+						},
+						"description": "Lấy tất cả store categories của store"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Store Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All categories are active\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.length > 0) {",
+									"        jsonData.data.forEach(function(category) {",
+									"            pm.expect(category.isActive).to.be.true;",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/active",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"active"
+							]
+						},
+						"description": "Lấy tất cả store categories active"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Store Category By ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has category data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data.id).to.eql(parseInt(pm.environment.get(\"root_category_id\")));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{root_category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{root_category_id}}"
+							]
+						},
+						"description": "Lấy store category theo ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Store Category - Not Found (Error)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/99999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"99999"
+							]
+						},
+						"description": "Test error case: category không tồn tại"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Root Store Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All categories are root (parentId = null)\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.length > 0) {",
+									"        jsonData.data.forEach(function(category) {",
+									"            pm.expect(category.parentId).to.be.null;",
+									"            pm.expect(category.level).to.eql(1);",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/roots",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"roots"
+							]
+						},
+						"description": "Lấy tất cả root store categories (parentId = null)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Child Categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All categories have correct parentId\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var parentId = parseInt(pm.environment.get(\"root_category_id\"));",
+									"    if (jsonData.data && jsonData.data.length > 0) {",
+									"        jsonData.data.forEach(function(category) {",
+									"            pm.expect(category.parentId).to.eql(parentId);",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{root_category_id}}/children",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{root_category_id}}",
+								"children"
+							]
+						},
+						"description": "Lấy danh sách child categories của một category"
+					},
+					"response": []
+				}
+			],
+			"description": "Test cases cho việc lấy store categories"
+		},
+		{
+			"name": "Update Store Category",
+			"item": [
+				{
+					"name": "Update Category Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Category name is updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.categoryName).to.eql(\"Hàng mới về - Updated\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"Hàng mới về - Updated\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{root_category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{root_category_id}}"
+							]
+						},
+						"description": "Cập nhật tên store category"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Display Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Display order is updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.displayOrder).to.eql(10);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"displayOrder\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{root_category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{root_category_id}}"
+							]
+						},
+						"description": "Cập nhật display order"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Multiple Fields",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"All fields are updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.categoryName).to.eql(\"Hàng mới về - Premium\");",
+									"    pm.expect(jsonData.data.displayOrder).to.eql(5);",
+									"    pm.expect(jsonData.data.isActive).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"Hàng mới về - Premium\",\n  \"displayOrder\": 5,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{root_category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{root_category_id}}"
+							]
+						},
+						"description": "Cập nhật nhiều fields cùng lúc"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category - Not Found (Error)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 or 404\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"categoryName\": \"Updated Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/99999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"99999"
+							]
+						},
+						"description": "Test error case: category không tồn tại"
+					},
+					"response": []
+				}
+			],
+			"description": "Test cases cho việc cập nhật store category"
+		},
+		{
+			"name": "Delete Store Category",
+			"item": [
+				{
+					"name": "Delete Category (Soft Delete)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Delete message is returned\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('thành công');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{child_category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{child_category_id}}"
+							]
+						},
+						"description": "Xóa store category (soft delete - set isActive = false). Lưu ý: chỉ xóa được nếu không có child categories active và không có sản phẩm đang sử dụng."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category - Has Children (Error)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test(\"Error message contains child error\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('category con');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/{{root_category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"{{root_category_id}}"
+							]
+						},
+						"description": "Test error case: không thể xóa category có child categories active"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category - Not Found (Error)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/store-categories/99999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"store-categories",
+								"99999"
+							]
+						},
+						"description": "Test error case: category không tồn tại"
+					},
+					"response": []
+				}
+			],
+			"description": "Test cases cho việc xóa store category"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "root_category_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "child_category_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

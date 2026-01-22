@@ -44,16 +44,16 @@ public class ProductDocument {
     @Field(type = FieldType.Keyword)
     private String productCode;
     
-    @Field(type = FieldType.Text, analyzer = "vi_analyzer", searchAnalyzer = "vi_analyzer")
+    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
     private String productName;
     
     @Field(type = FieldType.Keyword)
     private String slug;
     
-    @Field(type = FieldType.Text, analyzer = "vi_analyzer", searchAnalyzer = "vi_analyzer")
+    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
     private String description;
     
-    @Field(type = FieldType.Text, analyzer = "vi_analyzer", searchAnalyzer = "vi_analyzer")
+    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
     private String shortDescription;
     
     @Field(type = FieldType.Keyword)
