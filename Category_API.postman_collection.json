@@ -1,0 +1,485 @@
+{
+  "info": {
+    "name": "Category API - CRUD Tests",
+    "description": "Postman collection cho testing Category CRUD API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/categories",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "your_admin_token_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "CREATE",
+      "item": [
+        {
+          "name": "1. Tạo root category - Điện tử",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Điện tử\",\n  \"categorySlug\": \"dien-tu\",\n  \"description\": \"Danh mục các sản phẩm điện tử, công nghệ\",\n  \"imageUrl\": \"https://example.com/images/dien-tu.jpg\",\n  \"displayOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Tạo root category - Thời trang (auto slug)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Thời trang\",\n  \"description\": \"Danh mục thời trang nam nữ\",\n  \"imageUrl\": \"https://example.com/images/thoi-trang.jpg\",\n  \"displayOrder\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Tạo child category - Điện thoại",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Điện thoại\",\n  \"categorySlug\": \"dien-thoai\",\n  \"parentId\": 1,\n  \"description\": \"Danh mục điện thoại smartphone\",\n  \"displayOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "4. Tạo category tối thiểu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Sách\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: categoryName rỗng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"\",\n  \"categorySlug\": \"test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: slug không hợp lệ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Test Category\",\n  \"categorySlug\": \"test_slug_invalid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "READ",
+      "item": [
+        {
+          "name": "1. Lấy tất cả categories (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Lấy active categories (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public",
+              "host": ["{{baseUrl}}"],
+              "path": ["public"]
+            }
+          }
+        },
+        {
+          "name": "3. Lấy category theo ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "4. Lấy category theo slug (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/slug/dien-tu",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "slug", "dien-tu"]
+            }
+          }
+        },
+        {
+          "name": "5. Lấy root categories (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "roots"]
+            }
+          }
+        },
+        {
+          "name": "6. Lấy child categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/parent/1/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "parent", "1", "children"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: ID không tồn tại",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "UPDATE",
+      "item": [
+        {
+          "name": "1. Cập nhật tất cả các trường",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Điện tử - Đã cập nhật\",\n  \"categorySlug\": \"dien-tu-cap-nhat\",\n  \"description\": \"Mô tả đã được cập nhật\",\n  \"imageUrl\": \"https://example.com/images/dien-tu-new.jpg\",\n  \"displayOrder\": 10,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "2. Cập nhật chỉ categoryName",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Điện tử - Tên mới\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "3. Cập nhật parentId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parentId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["3"]
+            }
+          }
+        },
+        {
+          "name": "4. Deactivate category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Category không tồn tại",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: parentId là chính nó",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parentId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE",
+      "item": [
+        {
+          "name": "1. Xóa category (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/5",
+              "host": ["{{baseUrl}}"],
+              "path": ["5"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Category có con",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Category không tồn tại",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

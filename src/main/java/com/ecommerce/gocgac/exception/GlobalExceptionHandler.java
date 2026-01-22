@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
     
-    @ExceptionHandler(CooperativeException.class)
+    @ExceptionHandler({CooperativeException.class, CategoryException.class})
     public ResponseEntity<ErrorResponse> handleCooperativeException(CooperativeException ex) {
         log.error("Cooperative error: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
@@ -38,18 +38,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
     
-    @ExceptionHandler(CategoryException.class)
-    public ResponseEntity<ErrorResponse> handleCategoryException(CategoryException ex) {
-        log.error("Category error: {}", ex.getMessage());
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
-            ex.getMessage(),
-            LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-    
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler({IllegalArgumentException.class, CatalogException.class, ChannelException.class, ProductException.class})
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.error("Illegal argument: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(

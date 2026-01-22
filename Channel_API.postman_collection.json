@@ -1,0 +1,415 @@
+{
+  "info": {
+    "name": "Channel API - CRUD Tests",
+    "description": "Postman collection cho testing Channel CRUD API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8086/api/channels",
+      "type": "string"
+    },
+    {
+      "key": "cooperativeManagerToken",
+      "value": "your_cooperative_manager_token_here",
+      "type": "string"
+    },
+    {
+      "key": "sellerToken",
+      "value": "your_seller_token_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "CREATE",
+      "item": [
+        {
+          "name": "1. Tạo channel đầy đủ thông tin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"htx-nong-san-sach\",\n  \"channelName\": \"HTX Nông Sản Sạch\",\n  \"shortDescription\": \"Chuyên cung cấp nông sản sạch, an toàn\",\n  \"description\": \"HTX Nông Sản Sạch chuyên cung cấp các sản phẩm nông sản tươi sống, đảm bảo chất lượng và an toàn thực phẩm.\",\n  \"bannerUrl\": \"https://example.com/images/banner.jpg\",\n  \"logoUrl\": \"https://example.com/images/logo.png\",\n  \"videoUrl\": \"https://example.com/videos/intro.mp4\",\n  \"storyContent\": \"Câu chuyện về HTX của chúng tôi...\",\n  \"originStory\": \"HTX được thành lập năm 2020...\",\n  \"themeSettings\": \"{\\\"primaryColor\\\":\\\"#4CAF50\\\",\\\"secondaryColor\\\":\\\"#8BC34A\\\"}\",\n  \"metaTitle\": \"HTX Nông Sản Sạch - Nông sản tươi sống\",\n  \"metaDescription\": \"Chuyên cung cấp nông sản sạch, an toàn\",\n  \"metaKeywords\": \"nông sản, rau củ quả, thực phẩm sạch\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Tạo channel tối thiểu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"shop-thoi-trang\",\n  \"channelName\": \"Shop Thời Trang\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Tạo channel với themeSettings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"channel-with-theme\",\n  \"channelName\": \"Channel với Theme\",\n  \"shortDescription\": \"Channel có custom theme\",\n  \"themeSettings\": \"{\\\"primaryColor\\\":\\\"#FF5722\\\",\\\"fontFamily\\\":\\\"Arial\\\",\\\"layout\\\":\\\"modern\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: channelSlug rỗng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"\",\n  \"channelName\": \"Test Channel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: slug không hợp lệ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"invalid_slug\",\n  \"channelName\": \"Test Channel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "READ",
+      "item": [
+        {
+          "name": "1. Lấy tất cả channels (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          }
+        },
+        {
+          "name": "2. Lấy channel theo slug (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/htx-nong-san-sach",
+              "host": ["{{baseUrl}}"],
+              "path": ["htx-nong-san-sach"]
+            }
+          }
+        },
+        {
+          "name": "3. Lấy featured channels (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/featured",
+              "host": ["{{baseUrl}}"],
+              "path": ["featured"]
+            }
+          }
+        },
+        {
+          "name": "4. Lấy channel của mình (Protected)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/my-channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["my-channel"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Slug không tồn tại",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/khong-ton-tai",
+              "host": ["{{baseUrl}}"],
+              "path": ["khong-ton-tai"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "UPDATE",
+      "item": [
+        {
+          "name": "1. Cập nhật tất cả các trường",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"htx-nong-san-sach-updated\",\n  \"channelName\": \"HTX Nông Sản Sạch - Đã cập nhật\",\n  \"shortDescription\": \"Mô tả ngắn đã cập nhật\",\n  \"description\": \"Mô tả đầy đủ đã được cập nhật\",\n  \"bannerUrl\": \"https://example.com/images/banner-new.jpg\",\n  \"logoUrl\": \"https://example.com/images/logo-new.png\",\n  \"isFeatured\": true,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "2. Cập nhật chỉ channelName",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelName\": \"Tên mới\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "3. Set isFeatured = true",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFeatured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "4. Deactivate channel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "5. Cập nhật themeSettings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"themeSettings\": \"{\\\"primaryColor\\\":\\\"#9C27B0\\\",\\\"fontFamily\\\":\\\"Roboto\\\",\\\"layout\\\":\\\"classic\\\"}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Channel không tồn tại",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelName\": \"Test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DELETE",
+      "item": [
+        {
+          "name": "1. Xóa channel (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          }
+        },
+        {
+          "name": "ERROR: Channel không tồn tại",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cooperativeManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
