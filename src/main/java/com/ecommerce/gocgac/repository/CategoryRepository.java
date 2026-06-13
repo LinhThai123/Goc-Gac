@@ -14,6 +14,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Tìm category theo slug
      */
     Optional<Category> findByCategorySlug(String categorySlug);
+
+    Optional<Category> findByCategorySlugAndIsActiveTrue(String categorySlug);
+
+    Optional<Category> findByIdAndIsActiveTrue(Long id);
     
     /**
      * Kiểm tra category slug đã tồn tại chưa
@@ -34,11 +38,17 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Tìm tất cả categories active
      */
     List<Category> findAllByIsActiveTrue();
+
+    List<Category> findAllByIsActiveTrueOrderByDisplayOrderAsc();
     
     /**
      * Tìm tất cả categories active theo parent_id
      */
     List<Category> findAllByParentIdAndIsActiveTrue(Long parentId);
+
+    List<Category> findAllByParentIdAndIsActiveTrueOrderByDisplayOrderAsc(Long parentId);
+
+    List<Category> findAllByParentIdOrderByDisplayOrderAsc(Long parentId);
     
     /**
      * Tìm tất cả categories theo level
@@ -59,6 +69,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Tìm categories root active
      */
     List<Category> findAllByParentIdIsNullAndIsActiveTrue();
+
+    List<Category> findAllByParentIdIsNullAndIsActiveTrueOrderByDisplayOrderAsc();
+
+    List<Category> findAllByParentIdIsNullOrderByDisplayOrderAsc();
     
     /**
      * Đếm số lượng categories con của một category

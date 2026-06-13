@@ -7,13 +7,18 @@ import com.ecommerce.gocgac.dto.category.UpdateCategoryRequest;
 import com.ecommerce.gocgac.entity.Category;
 import com.ecommerce.gocgac.exception.CategoryException;
 import com.ecommerce.gocgac.repository.CategoryRepository;
+import com.ecommerce.gocgac.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -22,6 +27,7 @@ import java.util.stream.Collectors;
 public class CategoryService {
     
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
     
     /**
      * Generate slug từ category name (Vietnamese to slug)
@@ -172,9 +178,17 @@ public class CategoryService {
      * Lấy tất cả categories active
      */
     public List<CategoryResponse> getAllActiveCategories() {
-        return categoryRepository.findAllByIsActiveTrue().stream()
+        return categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc().stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy cây danh mục active (public) — root kèm children lồng nhau
+     */
+    public List<CategoryResponse> getActiveCategoryTree() {
+        List<Category> activeCategories = categoryRepository.findAllByIsActiveTrueOrderByDisplayOrderAsc();
+        return buildCategoryTree(activeCategories);
     }
     
     /**
@@ -188,29 +202,62 @@ public class CategoryService {
     }
     
     /**
-     * Lấy category theo slug
+     * Lấy category theo slug (admin — bao gồm inactive)
      */
     public CategoryResponse getCategoryBySlug(String slug) {
         Category category = categoryRepository.findByCategorySlug(slug)
             .orElseThrow(() -> new CategoryException("Category không tồn tại"));
-        
+
         return convertToResponse(category);
     }
-    
+
     /**
-     * Lấy tất cả categories con của một category
+     * Lấy category active theo slug (public)
+     */
+    public CategoryResponse getActiveCategoryBySlug(String slug) {
+        Category category = categoryRepository.findByCategorySlugAndIsActiveTrue(slug)
+            .orElseThrow(() -> new CategoryException("Category không tồn tại hoặc đã bị vô hiệu hóa"));
+
+        return convertToResponse(category);
+    }
+
+    /**
+     * Lấy tất cả categories con active của một category (public)
      */
     public List<CategoryResponse> getChildCategories(Long parentId) {
-        return categoryRepository.findAllByParentIdAndIsActiveTrue(parentId).stream()
+        requireActiveCategory(parentId);
+
+        return categoryRepository.findAllByParentIdAndIsActiveTrueOrderByDisplayOrderAsc(parentId).stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
     }
-    
+
     /**
-     * Lấy tất cả root categories (parent_id = null)
+     * Lấy tất cả root categories active (public)
      */
     public List<CategoryResponse> getRootCategories() {
-        return categoryRepository.findAllByParentIdIsNullAndIsActiveTrue().stream()
+        return categoryRepository.findAllByParentIdIsNullAndIsActiveTrueOrderByDisplayOrderAsc().stream()
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy tất cả root categories (admin — bao gồm inactive)
+     */
+    public List<CategoryResponse> getAdminRootCategories() {
+        return categoryRepository.findAllByParentIdIsNullOrderByDisplayOrderAsc().stream()
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy tất cả categories con (admin — bao gồm inactive)
+     */
+    public List<CategoryResponse> getAdminChildCategories(Long parentId) {
+        categoryRepository.findById(parentId)
+            .orElseThrow(() -> new CategoryException("Parent category không tồn tại"));
+
+        return categoryRepository.findAllByParentIdOrderByDisplayOrderAsc(parentId).stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
     }
@@ -292,13 +339,58 @@ public class CategoryService {
         if (childCount > 0) {
             throw new CategoryException("Không thể xóa category vì còn " + childCount + " category con đang active");
         }
-        
+
+        long productCount = productRepository.countByCategoryId(id);
+        if (productCount > 0) {
+            throw new CategoryException(
+                "Không thể xóa category vì còn " + productCount + " sản phẩm đang sử dụng category này");
+        }
+
         category.setIsActive(false);
         categoryRepository.save(category);
         
         log.info("Category {} deactivated", id);
     }
     
+    private void requireActiveCategory(Long categoryId) {
+        categoryRepository.findByIdAndIsActiveTrue(categoryId)
+            .orElseThrow(() -> new CategoryException("Parent category không tồn tại hoặc đã bị vô hiệu hóa"));
+    }
+
+    private List<CategoryResponse> buildCategoryTree(List<Category> categories) {
+        Map<Long, List<Category>> childrenByParentId = new HashMap<>();
+        List<Category> roots = new ArrayList<>();
+
+        for (Category category : categories) {
+            if (category.getParentId() == null) {
+                roots.add(category);
+            } else {
+                childrenByParentId
+                    .computeIfAbsent(category.getParentId(), key -> new ArrayList<>())
+                    .add(category);
+            }
+        }
+
+        roots.sort(Comparator.comparing(Category::getDisplayOrder));
+        return roots.stream()
+            .map(root -> toTreeNode(root, childrenByParentId))
+            .collect(Collectors.toList());
+    }
+
+    private CategoryResponse toTreeNode(Category category, Map<Long, List<Category>> childrenByParentId) {
+        CategoryResponse response = convertToResponse(category);
+
+        List<Category> children = childrenByParentId.getOrDefault(category.getId(), List.of());
+        if (!children.isEmpty()) {
+            children.sort(Comparator.comparing(Category::getDisplayOrder));
+            response.setChildren(children.stream()
+                .map(child -> toTreeNode(child, childrenByParentId))
+                .collect(Collectors.toList()));
+        }
+
+        return response;
+    }
+
     /**
      * Convert Category entity to CategoryResponse DTO
      */

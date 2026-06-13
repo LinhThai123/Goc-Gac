@@ -19,6 +19,9 @@ public class UpdateStoreCategoryRequest {
     private String categoryName;
     
     private Long parentId; // Optional, có thể thay đổi parent
+
+    /** true = chuyển category về root (parentId = null, level = 1) */
+    private Boolean makeRoot;
     
     @Min(value = 0, message = "Thứ tự hiển thị phải >= 0")
     private Integer displayOrder;

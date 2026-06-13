@@ -88,6 +88,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/categories/public/**").permitAll()
                 // Public Channel endpoints
                 .requestMatchers("/api/channels/**").permitAll()
+                // Public Review endpoints (xem đánh giá đã duyệt)
+                .requestMatchers("/api/reviews/public/**").permitAll()
+                // Public Store Category endpoints (storefront)
+                .requestMatchers("/api/store-categories/public/**").permitAll()
                 // Seller endpoints - Cho phép SELLER, COOPERATIVE_MANAGER, SUPER_ADMIN
                 .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "COOPERATIVE_MANAGER", "SUPER_ADMIN")
                 // Customer endpoints

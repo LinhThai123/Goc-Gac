@@ -9,7 +9,10 @@ import com.ecommerce.gocgac.entity.Cooperative;
 import com.ecommerce.gocgac.entity.Store;
 import com.ecommerce.gocgac.entity.User;
 import com.ecommerce.gocgac.entity.enums.UserType;
+import com.ecommerce.gocgac.entity.ChannelFollow;
 import com.ecommerce.gocgac.exception.ChannelException;
+import com.ecommerce.gocgac.exception.ResourceNotFoundException;
+import com.ecommerce.gocgac.repository.ChannelFollowRepository;
 import com.ecommerce.gocgac.repository.ChannelRepository;
 import com.ecommerce.gocgac.repository.CooperativeRepository;
 import com.ecommerce.gocgac.repository.StoreRepository;
@@ -29,6 +32,7 @@ import java.util.stream.Collectors;
 public class ChannelService {
     
     private final ChannelRepository channelRepository;
+    private final ChannelFollowRepository channelFollowRepository;
     private final StoreRepository storeRepository;
     private final CooperativeRepository cooperativeRepository;
     private final UserRepository userRepository;
@@ -282,6 +286,50 @@ public class ChannelService {
             .collect(Collectors.toList());
     }
     
+    // ========== Channel Follow (Social) ==========
+
+    /**
+     * User theo dõi một channel. Idempotent: đã follow thì bỏ qua.
+     * Việc cập nhật follower_count do trigger CSDL đảm nhiệm (migration V7).
+     */
+    @Transactional
+    public void followChannel(Long userId, Long channelId) {
+        if (!channelRepository.existsById(channelId)) {
+            throw new ResourceNotFoundException("Channel không tồn tại");
+        }
+        if (channelFollowRepository.existsByChannelIdAndUserId(channelId, userId)) {
+            return; // đã theo dõi rồi
+        }
+        ChannelFollow follow = new ChannelFollow();
+        follow.setChannelId(channelId);
+        follow.setUserId(userId);
+        channelFollowRepository.save(follow);
+        log.info("User {} followed channel {}", userId, channelId);
+    }
+
+    /**
+     * User bỏ theo dõi một channel. Idempotent.
+     */
+    @Transactional
+    public void unfollowChannel(Long userId, Long channelId) {
+        channelFollowRepository.deleteByChannelIdAndUserId(channelId, userId);
+        log.info("User {} unfollowed channel {}", userId, channelId);
+    }
+
+    /**
+     * Kiểm tra user hiện tại có đang theo dõi channel không.
+     */
+    public boolean isFollowing(Long userId, Long channelId) {
+        return channelFollowRepository.existsByChannelIdAndUserId(channelId, userId);
+    }
+
+    /**
+     * Số lượng người theo dõi của channel.
+     */
+    public long countFollowers(Long channelId) {
+        return channelFollowRepository.countByChannelId(channelId);
+    }
+
     /**
      * Convert Channel entity to ChannelResponse DTO
      */

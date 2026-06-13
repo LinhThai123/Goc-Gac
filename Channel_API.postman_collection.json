@@ -1,27 +1,142 @@
 {
   "info": {
     "name": "Channel API - CRUD Tests",
-    "description": "Postman collection cho testing Channel CRUD API",
+    "description": "Postman collection cho testing Channel API (micro-site shop).\n\nPublic: GET /, GET /featured, GET /{slug}\nProtected (COOPERATIVE_MANAGER, SELLER): GET /my-channel, POST, PUT /{id}, DELETE /{id}\n\nLưu ý: Mỗi store chỉ được 1 channel. Slug unique toàn hệ thống.\n\nBiến: baseUrl, sellerToken, channelId, channelSlug",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8086/api/channels",
-      "type": "string"
-    },
-    {
-      "key": "cooperativeManagerToken",
-      "value": "your_cooperative_manager_token_here",
+      "value": "http://localhost:8080/api/channels",
       "type": "string"
     },
     {
       "key": "sellerToken",
-      "value": "your_seller_token_here",
+      "value": "your_seller_or_cooperative_manager_token_here",
+      "type": "string"
+    },
+    {
+      "key": "channelId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "channelSlug",
+      "value": "htx-moc-chau",
       "type": "string"
     }
   ],
   "item": [
+    {
+      "name": "READ - Public",
+      "item": [
+        {
+          "name": "1. Lấy tất cả channels active",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            },
+            "description": "GET /api/channels — danh sách channel isActive = true, không cần token"
+          }
+        },
+        {
+          "name": "2. Lấy channels featured",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/featured",
+              "host": ["{{baseUrl}}"],
+              "path": ["featured"]
+            },
+            "description": "GET /api/channels/featured — isFeatured = true và isActive = true"
+          }
+        },
+        {
+          "name": "3. Lấy channel theo slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{channelSlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{channelSlug}}"]
+            },
+            "description": "GET /api/channels/{slug} — chỉ channel active; inactive → 404"
+          }
+        },
+        {
+          "name": "ERROR: Slug không tồn tại hoặc inactive",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/slug-khong-ton-tai",
+              "host": ["{{baseUrl}}"],
+              "path": ["slug-khong-ton-tai"]
+            },
+            "description": "Kỳ vọng 404"
+          }
+        }
+      ]
+    },
+    {
+      "name": "READ - Protected",
+      "item": [
+        {
+          "name": "1. Lấy channel của tôi (my-channel)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/my-channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["my-channel"]
+            },
+            "description": "GET /api/channels/my-channel — channel của store gắn với user đăng nhập"
+          }
+        },
+        {
+          "name": "ERROR: Chưa có channel (hoặc chưa có store)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/my-channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["my-channel"]
+            },
+            "description": "Kỳ vọng 404 khi store chưa tạo channel"
+          }
+        },
+        {
+          "name": "ERROR: Không có token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/my-channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["my-channel"]
+            },
+            "description": "Kỳ vọng 401/403 tùy cấu hình security"
+          }
+        }
+      ]
+    },
     {
       "name": "CREATE",
       "item": [
@@ -36,17 +151,18 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channelSlug\": \"htx-nong-san-sach\",\n  \"channelName\": \"HTX Nông Sản Sạch\",\n  \"shortDescription\": \"Chuyên cung cấp nông sản sạch, an toàn\",\n  \"description\": \"HTX Nông Sản Sạch chuyên cung cấp các sản phẩm nông sản tươi sống, đảm bảo chất lượng và an toàn thực phẩm.\",\n  \"bannerUrl\": \"https://example.com/images/banner.jpg\",\n  \"logoUrl\": \"https://example.com/images/logo.png\",\n  \"videoUrl\": \"https://example.com/videos/intro.mp4\",\n  \"storyContent\": \"Câu chuyện về HTX của chúng tôi...\",\n  \"originStory\": \"HTX được thành lập năm 2020...\",\n  \"themeSettings\": \"{\\\"primaryColor\\\":\\\"#4CAF50\\\",\\\"secondaryColor\\\":\\\"#8BC34A\\\"}\",\n  \"metaTitle\": \"HTX Nông Sản Sạch - Nông sản tươi sống\",\n  \"metaDescription\": \"Chuyên cung cấp nông sản sạch, an toàn\",\n  \"metaKeywords\": \"nông sản, rau củ quả, thực phẩm sạch\"\n}"
+              "raw": "{\n  \"channelSlug\": \"{{channelSlug}}\",\n  \"channelName\": \"HTX Mộc Châu\",\n  \"shortDescription\": \"Nông sản sạch từ Mộc Châu\",\n  \"description\": \"<p>Giới thiệu chi tiết về HTX và sản phẩm đặc sản.</p>\",\n  \"bannerUrl\": \"https://example.com/images/banner.jpg\",\n  \"logoUrl\": \"https://example.com/images/logo.png\",\n  \"videoUrl\": \"https://example.com/videos/intro.mp4\",\n  \"storyContent\": \"<p>Câu chuyện thương hiệu...</p>\",\n  \"originStory\": \"<p>Nguồn gốc sản phẩm...</p>\",\n  \"themeSettings\": \"{\\\"primaryColor\\\": \\\"#2E7D32\\\", \\\"secondaryColor\\\": \\\"#FFC107\\\", \\\"logo\\\": \\\"https://example.com/logo.png\\\"}\",\n  \"metaTitle\": \"HTX Mộc Châu - Gốc Gác\",\n  \"metaDescription\": \"Mua nông sản Mộc Châu chính gốc\",\n  \"metaKeywords\": \"moc chau, nong san, htx\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}",
               "host": ["{{baseUrl}}"]
-            }
+            },
+            "description": "POST /api/channels — lưu channelId từ response vào biến collection"
           }
         },
         {
@@ -65,31 +181,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channelSlug\": \"shop-thoi-trang\",\n  \"channelName\": \"Shop Thời Trang\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": ["{{baseUrl}}"]
-            }
-          }
-        },
-        {
-          "name": "3. Tạo channel với themeSettings",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"channelSlug\": \"channel-with-theme\",\n  \"channelName\": \"Channel với Theme\",\n  \"shortDescription\": \"Channel có custom theme\",\n  \"themeSettings\": \"{\\\"primaryColor\\\":\\\"#FF5722\\\",\\\"fontFamily\\\":\\\"Arial\\\",\\\"layout\\\":\\\"modern\\\"}\"\n}"
+              "raw": "{\n  \"channelSlug\": \"cua-hang-demo\",\n  \"channelName\": \"Cửa hàng Demo\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}",
@@ -108,7 +200,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
@@ -118,7 +210,8 @@
             "url": {
               "raw": "{{baseUrl}}",
               "host": ["{{baseUrl}}"]
-            }
+            },
+            "description": "Kỳ vọng 400 validation"
           }
         },
         {
@@ -132,86 +225,68 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channelSlug\": \"invalid_slug\",\n  \"channelName\": \"Test Channel\"\n}"
+              "raw": "{\n  \"channelSlug\": \"Slug_Khong_Hop_Le\",\n  \"channelName\": \"Test Channel\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}",
               "host": ["{{baseUrl}}"]
-            }
+            },
+            "description": "Kỳ vọng 400 — slug chỉ [a-z0-9-]"
           }
-        }
-      ]
-    },
-    {
-      "name": "READ",
-      "item": [
+        },
         {
-          "name": "1. Lấy tất cả channels (Public)",
+          "name": "ERROR: Store đã có channel",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"slug-trung-lap-store\",\n  \"channelName\": \"Channel thứ hai\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}",
               "host": ["{{baseUrl}}"]
-            }
+            },
+            "description": "Kỳ vọng 400 — mỗi store chỉ 1 channel"
           }
         },
         {
-          "name": "2. Lấy channel theo slug (Public)",
+          "name": "ERROR: Slug đã tồn tại (hệ thống)",
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/htx-nong-san-sach",
-              "host": ["{{baseUrl}}"],
-              "path": ["htx-nong-san-sach"]
-            }
-          }
-        },
-        {
-          "name": "3. Lấy featured channels (Public)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/featured",
-              "host": ["{{baseUrl}}"],
-              "path": ["featured"]
-            }
-          }
-        },
-        {
-          "name": "4. Lấy channel của mình (Protected)",
-          "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"{{channelSlug}}\",\n  \"channelName\": \"Trùng slug toàn cục\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/my-channel",
-              "host": ["{{baseUrl}}"],
-              "path": ["my-channel"]
-            }
-          }
-        },
-        {
-          "name": "ERROR: Slug không tồn tại",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/khong-ton-tai",
-              "host": ["{{baseUrl}}"],
-              "path": ["khong-ton-tai"]
-            }
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            },
+            "description": "Kỳ vọng 400 khi slug đã dùng bởi store khác (cần user/store chưa có channel)"
           }
         }
       ]
@@ -230,17 +305,17 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channelSlug\": \"htx-nong-san-sach-updated\",\n  \"channelName\": \"HTX Nông Sản Sạch - Đã cập nhật\",\n  \"shortDescription\": \"Mô tả ngắn đã cập nhật\",\n  \"description\": \"Mô tả đầy đủ đã được cập nhật\",\n  \"bannerUrl\": \"https://example.com/images/banner-new.jpg\",\n  \"logoUrl\": \"https://example.com/images/logo-new.png\",\n  \"isFeatured\": true,\n  \"isActive\": true\n}"
+              "raw": "{\n  \"channelSlug\": \"{{channelSlug}}\",\n  \"channelName\": \"HTX Mộc Châu - Đã cập nhật\",\n  \"shortDescription\": \"Mô tả ngắn mới\",\n  \"description\": \"<p>Mô tả HTML mới</p>\",\n  \"bannerUrl\": \"https://example.com/images/banner-new.jpg\",\n  \"logoUrl\": \"https://example.com/images/logo-new.png\",\n  \"videoUrl\": \"https://example.com/videos/intro-new.mp4\",\n  \"storyContent\": \"<p>Câu chuyện cập nhật</p>\",\n  \"originStory\": \"<p>Nguồn gốc cập nhật</p>\",\n  \"themeSettings\": \"{\\\"primaryColor\\\": \\\"#1565C0\\\", \\\"secondaryColor\\\": \\\"#FF5722\\\"}\",\n  \"isActive\": true,\n  \"isFeatured\": true,\n  \"metaTitle\": \"HTX Mộc Châu - SEO Title\",\n  \"metaDescription\": \"Meta description mới\",\n  \"metaKeywords\": \"moc chau, dac san\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{channelId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
+              "path": ["{{channelId}}"]
             }
           }
         },
@@ -255,22 +330,22 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channelName\": \"Tên mới\"\n}"
+              "raw": "{\n  \"channelName\": \"Tên channel mới\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{channelId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
+              "path": ["{{channelId}}"]
             }
           }
         },
         {
-          "name": "3. Set isFeatured = true",
+          "name": "3. Bật featured",
           "request": {
             "method": "PUT",
             "header": [
@@ -280,7 +355,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
@@ -288,14 +363,15 @@
               "raw": "{\n  \"isFeatured\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{channelId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
-            }
+              "path": ["{{channelId}}"]
+            },
+            "description": "Sau đó gọi GET /featured để kiểm tra"
           }
         },
         {
-          "name": "4. Deactivate channel",
+          "name": "4. Deactivate channel (isActive = false)",
           "request": {
             "method": "PUT",
             "header": [
@@ -305,7 +381,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
@@ -313,14 +389,15 @@
               "raw": "{\n  \"isActive\": false\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{channelId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
-            }
+              "path": ["{{channelId}}"]
+            },
+            "description": "GET public theo slug sẽ 404; GET / và /featured không còn hiển thị"
           }
         },
         {
-          "name": "5. Cập nhật themeSettings",
+          "name": "5. Kích hoạt lại channel",
           "request": {
             "method": "PUT",
             "header": [
@@ -330,17 +407,17 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"themeSettings\": \"{\\\"primaryColor\\\":\\\"#9C27B0\\\",\\\"fontFamily\\\":\\\"Roboto\\\",\\\"layout\\\":\\\"classic\\\"}\"\n}"
+              "raw": "{\n  \"isActive\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{channelId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
+              "path": ["{{channelId}}"]
             }
           }
         },
@@ -355,7 +432,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "body": {
@@ -366,7 +443,34 @@
               "raw": "{{baseUrl}}/99999",
               "host": ["{{baseUrl}}"],
               "path": ["99999"]
-            }
+            },
+            "description": "Kỳ vọng 400"
+          }
+        },
+        {
+          "name": "ERROR: Slug trùng channel khác",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channelSlug\": \"slug-cua-channel-khac\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{channelId}}"]
+            },
+            "description": "Kỳ vọng 400 khi slug đã thuộc channel khác"
           }
         }
       ]
@@ -381,14 +485,15 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{channelId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
-            }
+              "path": ["{{channelId}}"]
+            },
+            "description": "DELETE /api/channels/{id} — set isActive = false. Tạo lại channel mới cần store chưa có channel hoặc xử lý nghiệp vụ riêng."
           }
         },
         {
@@ -398,18 +503,36 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{cooperativeManagerToken}}"
+                "value": "Bearer {{sellerToken}}"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/99999",
               "host": ["{{baseUrl}}"],
               "path": ["99999"]
-            }
+            },
+            "description": "Kỳ vọng 400"
+          }
+        },
+        {
+          "name": "ERROR: Không có quyền (channel store khác)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99998",
+              "host": ["{{baseUrl}}"],
+              "path": ["99998"]
+            },
+            "description": "Kỳ vọng 400 — id tồn tại nhưng không thuộc store của user (đổi id phù hợp môi trường test)"
           }
         }
       ]
     }
   ]
 }
-

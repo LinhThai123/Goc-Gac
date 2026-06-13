@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -28,5 +29,8 @@ public class StoreCategoryResponse {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+
+    /** Danh sách danh mục con (có khi gọi API tree) */
+    private List<StoreCategoryResponse> children;
 }
 

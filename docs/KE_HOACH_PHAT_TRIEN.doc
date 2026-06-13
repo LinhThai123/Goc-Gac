@@ -1,0 +1,285 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<title>Kế hoạch phát triển GocGac</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page { size: 21cm 29.7cm; margin: 2.5cm 2cm; }
+body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.45; color:#1a1a1a; }
+h1 { font-size: 19pt; color:#1f5f3f; border-bottom:3px solid #1f5f3f; padding-bottom:5px; margin-top:26px; }
+h2 { font-size: 14pt; color:#1f5f3f; border-left:5px solid #2e8b57; padding-left:8px; margin-top:20px; }
+h3 { font-size: 12.5pt; color:#2e6b4a; margin-top:14px; }
+table { border-collapse:collapse; width:100%; margin:8px 0; font-size:10.5pt; }
+th { background:#2e8b57; color:#fff; border:1px solid #1f5f3f; padding:6px; text-align:left; }
+td { border:1px solid #b5cdbf; padding:5px 7px; vertical-align:top; }
+tr:nth-child(even) td { background:#f3f9f5; }
+code,.mono { font-family:Consolas,monospace; font-size:10pt; background:#eef4f0; padding:1px 4px; }
+pre { background:#f5f7f6; border:1px solid #cdddd3; padding:10px; font-family:Consolas,monospace; font-size:9.5pt; white-space:pre-wrap; }
+.cover { text-align:center; padding-top:110px; }
+.cover h1 { border:none; font-size:30pt; }
+.note { background:#fff8e1; border-left:4px solid #e08e0b; padding:8px 12px; margin:10px 0; }
+.crit { background:#fdecea; border-left:4px solid #c0392b; padding:8px 12px; margin:10px 0; }
+.pagebreak { page-break-before:always; }
+.p1{background:#c0392b;color:#fff;padding:1px 6px;font-size:9pt;}
+.p2{background:#e08e0b;color:#fff;padding:1px 6px;font-size:9pt;}
+.p3{background:#2e8b57;color:#fff;padding:1px 6px;font-size:9pt;}
+</style>
+</head>
+<body>
+
+<div class="cover">
+<p style="font-size:13pt;color:#2e8b57;letter-spacing:3px;">KẾ HOẠCH TRIỂN KHAI</p>
+<h1>GocGac</h1>
+<p style="font-size:15pt;color:#555;">Kế hoạch từng bước hoàn thiện dự án</p>
+<p style="font-size:13pt;color:#555;">(Dựa trên tài liệu SRS v1.0)</p>
+<br><br><br>
+<table style="width:55%;margin:0 auto;">
+<tr><td><b>Phiên bản</b></td><td>1.0</td></tr>
+<tr><td><b>Ngày</b></td><td>13/06/2026</td></tr>
+<tr><td><b>Mô hình</b></td><td>Agile — Sprint 2 tuần</td></tr>
+<tr><td><b>Tổng thời lượng dự kiến</b></td><td>~14 sprint (≈ 7 tháng / 1 dev; ~3,5 tháng / 2 dev)</td></tr>
+</table>
+</div>
+
+<div class="pagebreak"></div>
+<h1>1. Nguyên tắc &amp; quy ước triển khai</h1>
+
+<h2>1.1. Insight then chốt: phần lớn đã có sẵn nền móng</h2>
+<p>Toàn bộ <b>schema CSDL (≈70 bảng)</b> và phần lớn <b>entity JPA</b> đã được tạo trong các migration <span class="mono">V1–V12</span>. Vì vậy với mỗi module còn thiếu, công việc chủ yếu là <b>xây các tầng phía trên entity</b>, không phải thiết kế lại CSDL.</p>
+
+<h2>1.2. Quy trình chuẩn cho MỖI module (Definition of Done)</h2>
+<table>
+<tr><th>#</th><th>Bước</th><th>Sản phẩm bàn giao</th></tr>
+<tr><td>1</td><td>Rà soát entity &amp; bảng đã có</td><td>Đối chiếu entity với migration, bổ sung cột/enum thiếu.</td></tr>
+<tr><td>2</td><td>Repository</td><td>Interface JpaRepository + query method/JPQL cần thiết.</td></tr>
+<tr><td>3</td><td>DTO</td><td>Request (có <span class="mono">@Valid</span>) + Response; mapping bằng ModelMapper.</td></tr>
+<tr><td>4</td><td>Service + nghiệp vụ</td><td>Logic, validate, transaction (<span class="mono">@Transactional</span>), xử lý ngoại lệ.</td></tr>
+<tr><td>5</td><td>Controller</td><td>REST endpoint + <span class="mono">@PreAuthorize</span> phân quyền theo SRS.</td></tr>
+<tr><td>6</td><td>Bảo mật</td><td>Cập nhật SecurityConfig nếu cần (public/protected).</td></tr>
+<tr><td>7</td><td>Kiểm thử</td><td>Unit test service + integration test controller.</td></tr>
+<tr><td>8</td><td>Tài liệu</td><td>Swagger annotation + cập nhật Postman collection.</td></tr>
+</table>
+
+<h2>1.3. Hạng mục nền tảng dùng chung (làm 1 lần, dùng mọi module)</h2>
+<p class="note">Nên hoàn thiện <b>Sprint 0</b> trước khi vào nghiệp vụ để mọi module sau đồng nhất.</p>
+<ul>
+<li><b>ApiResponse&lt;T&gt;</b> chuẩn hóa (code, message, data) — vỏ phản hồi thống nhất.</li>
+<li><b>GlobalExceptionHandler</b> (<span class="mono">@RestControllerAdvice</span>) — bắt lỗi validate, not-found, business, 401/403.</li>
+<li><b>Lớp lỗi nghiệp vụ</b>: <span class="mono">BusinessException</span>, <span class="mono">ResourceNotFoundException</span> + mã lỗi.</li>
+<li><b>Phân trang chuẩn</b>: <span class="mono">PageResponse&lt;T&gt;</span> (content, page, size, totalElements).</li>
+<li><b>Audit</b>: <span class="mono">BaseEntity</span> (createdAt/updatedAt/createdBy) + <span class="mono">@EnableJpaAuditing</span>.</li>
+<li><b>Tiện ích CurrentUser</b>: lấy userId/role từ JWT (SecurityContext) — dùng khắp nơi.</li>
+<li><b>Notification + Email service</b> (M22) — hạ tầng thông báo, dùng cho Order/duyệt.</li>
+</ul>
+
+<!-- ROADMAP TABLE -->
+<div class="pagebreak"></div>
+<h1>2. Tổng quan lộ trình theo Sprint</h1>
+<table>
+<tr><th>Sprint</th><th>Trọng tâm</th><th>Module</th><th>Ưu tiên</th></tr>
+<tr><td>S0</td><td>Nền tảng dùng chung + hoàn thiện phần dở</td><td>Common, M04, M01 (social/forgot), M07 follow</td><td><span class="p1">CAO</span></td></tr>
+<tr><td>S1</td><td>Giỏ hàng</td><td>M09 (cart)</td><td><span class="p1">CAO</span></td></tr>
+<tr><td>S2</td><td>Đặt hàng + Tồn kho</td><td>M09 (order) + M15</td><td><span class="p1">CAO</span></td></tr>
+<tr><td>S3</td><td>Thanh toán</td><td>M10</td><td><span class="p1">CAO</span></td></tr>
+<tr><td>S4</td><td>Vận chuyển</td><td>M11</td><td><span class="p1">CAO</span></td></tr>
+<tr><td>S5</td><td>Voucher &amp; Khuyến mãi</td><td>M12</td><td><span class="p2">VỪA</span></td></tr>
+<tr><td>S6</td><td>Khách hàng thân thiết</td><td>M13</td><td><span class="p2">VỪA</span></td></tr>
+<tr><td>S7</td><td>Đánh giá &amp; nhận xét</td><td>M14</td><td><span class="p2">VỪA</span></td></tr>
+<tr><td>S8</td><td>Thông báo + Tin nhắn</td><td>M22 + M16</td><td><span class="p2">VỪA</span></td></tr>
+<tr><td>S9</td><td>Cá nhân hóa &amp; gợi ý</td><td>M08</td><td><span class="p3">THẤP</span></td></tr>
+<tr><td>S10</td><td>Tiếp thị liên kết</td><td>M17</td><td><span class="p3">THẤP</span></td></tr>
+<tr><td>S11</td><td>Quảng cáo &amp; Banner</td><td>M18</td><td><span class="p3">THẤP</span></td></tr>
+<tr><td>S12</td><td>Tin tức / CMS</td><td>M19</td><td><span class="p3">THẤP</span></td></tr>
+<tr><td>S13</td><td>Quản trị hệ thống</td><td>M20</td><td><span class="p2">VỪA</span></td></tr>
+<tr><td>S14</td><td>Báo cáo &amp; Dashboard + Hoàn thiện</td><td>M23 + test/deploy</td><td><span class="p2">VỪA</span></td></tr>
+</table>
+
+<div class="crit"><b>Đường găng (critical path):</b> S1 → S2 → S3 → S4. Đây là luồng mua bán cốt lõi; sàn chỉ vận hành thật được sau khi xong 4 sprint này. Ưu tiên tuyệt đối.</div>
+
+<!-- DETAILED PER SPRINT -->
+<div class="pagebreak"></div>
+<h1>3. Chi tiết từng Sprint</h1>
+
+<h2>Sprint 0 — Nền tảng &amp; hoàn thiện phần dở</h2>
+<h3>Mục tiêu</h3>
+<p>Thiết lập hạ tầng dùng chung và đóng các phần đang dở (◐) để không nợ kỹ thuật.</p>
+<h3>Công việc</h3>
+<table>
+<tr><th>Task</th><th>Chi tiết</th></tr>
+<tr><td>Common layer</td><td>ApiResponse, GlobalExceptionHandler, PageResponse, BaseEntity audit, CurrentUser util.</td></tr>
+<tr><td>M04 Store CRUD</td><td>Hoàn thiện tạo/sửa gian hàng cho SELLER; cấu hình store.</td></tr>
+<tr><td>M01 Forgot password</td><td>Luồng quên mật khẩu qua email (bảng <span class="mono">password_resets</span>).</td></tr>
+<tr><td>M01 Social login</td><td>Đăng nhập Google (bảng <span class="mono">social_logins</span>) — tùy chọn.</td></tr>
+<tr><td>M07 Channel follow</td><td>Theo dõi/bỏ theo dõi kênh.</td></tr>
+<tr><td>M22 Notification hạ tầng</td><td>Entity Notification + service gửi + email template.</td></tr>
+</table>
+<h3>Tiêu chí hoàn thành</h3>
+<p>Tất cả API trả về theo ApiResponse thống nhất; lỗi được xử lý tập trung; gửi được email/thông báo thử nghiệm.</p>
+
+<h2>Sprint 1 — Giỏ hàng (M09 phần Cart)</h2>
+<h3>Use case</h3>
+<p>UC-M09-01 Thêm vào giỏ · UC-M09-02 Xem/sửa/xóa giỏ.</p>
+<h3>Công việc</h3>
+<ul>
+<li>Repository: CartRepository, CartItemRepository.</li>
+<li>DTO: AddToCartRequest (variantId, quantity), UpdateCartItemRequest, CartResponse (tổng tiền, danh sách item).</li>
+<li>Service: tự tạo Cart khi user lần đầu; thêm/gộp item theo SKU; kiểm tra tồn kho khả dụng (<span class="mono">available_quantity</span>); tính tạm tính.</li>
+<li>Controller <span class="mono">/api/cart</span>: GET, POST item, PUT item/{id}, DELETE item/{id}, DELETE clear.</li>
+<li>Phân quyền: CUSTOMER.</li>
+</ul>
+<h3>Tiêu chí hoàn thành</h3>
+<p>Khách thêm SKU vào giỏ, sửa số lượng, xóa; giỏ phản ánh đúng giá hiện tại &amp; tồn kho.</p>
+
+<h2>Sprint 2 — Đặt hàng + Tồn kho (M09 Order + M15)</h2>
+<h3>Use case</h3>
+<p>UC-M09-03 Checkout · 05 Xem đơn · 06 Hủy · 07 Xử lý · 08 Lịch sử trạng thái · UC-M15 giữ/trừ tồn.</p>
+<h3>Công việc</h3>
+<ul>
+<li>Repository: OrderRepository, OrderItemRepository, OrderStatusHistoryRepository, StockTransactionRepository.</li>
+<li>DTO: CheckoutRequest (địa chỉ, paymentMethod, voucherCode?, dùng điểm?), OrderResponse, OrderListItem.</li>
+<li>Service checkout: validate giỏ → tách đơn theo <span class="mono">store_id</span> → tính subtotal/shippingFee/discount/total → sinh <span class="mono">order_code</span> → <b>giữ tồn</b> (<span class="mono">reserved_quantity += qty</span>) → ghi StockTransaction(OUT) → tạo Order(PENDING) + OrderItem → ghi OrderStatusHistory → bắn thông báo.</li>
+<li>Vòng đời đơn: PENDING→CONFIRMED→PROCESSING→SHIPPING→DELIVERED; CANCELLED/RETURNED (hoàn tồn).</li>
+<li>Controller: <span class="mono">/api/orders</span> (customer) + <span class="mono">/api/seller/orders</span> (xử lý đơn).</li>
+<li>Bảo đảm <span class="mono">@Transactional</span> + khóa lạc quan/bi quan chống oversell.</li>
+</ul>
+<h3>Tiêu chí hoàn thành</h3>
+<p>Đặt được đơn từ giỏ, trừ/giữ tồn chính xác, hủy đơn hoàn tồn, người bán chuyển trạng thái có ghi vết.</p>
+
+<h2>Sprint 3 — Thanh toán (M10)</h2>
+<h3>Công việc</h3>
+<ul>
+<li><b>Bước 1 — COD trước:</b> chọn COD → Order CONFIRMED ngay, Payment(PENDING).</li>
+<li><b>Bước 2 — Cổng online:</b> tích hợp 1 cổng (đề xuất VNPay sandbox): tạo URL thanh toán, xử lý <b>return URL</b> + <b>IPN callback</b>, đối soát chữ ký.</li>
+<li>Service: cập nhật <span class="mono">payment_status</span>, đồng bộ Order; thất bại → hoàn giữ tồn + CANCELLED.</li>
+<li>UC-M10-04 Hoàn tiền: API admin REFUNDED.</li>
+<li>Controller: <span class="mono">/api/payments</span>, <span class="mono">/api/payments/vnpay/callback</span> (public, verify chữ ký).</li>
+</ul>
+<h3>Tiêu chí hoàn thành</h3>
+<p>Thanh toán COD &amp; 1 cổng online chạy end-to-end ở sandbox; callback cập nhật đúng trạng thái.</p>
+
+<h2>Sprint 4 — Vận chuyển (M11)</h2>
+<h3>Công việc</h3>
+<ul>
+<li>CRUD ShippingProvider (admin).</li>
+<li>Tạo vận đơn khi đơn SHIPPING: ShippingTracking + mã vận đơn; (tùy chọn) tích hợp API GHN/GHTK.</li>
+<li>Cập nhật ShippingEvent (hành trình), đẩy trạng thái về Order.</li>
+<li>API khách theo dõi đơn <span class="mono">/api/orders/{id}/tracking</span>.</li>
+<li>Tính phí ship cơ bản theo khu vực/khối lượng (cấu hình).</li>
+</ul>
+
+<h2>Sprint 5 — Voucher &amp; Khuyến mãi (M12)</h2>
+<ul>
+<li>CRUD Voucher (store), Promotion + PromotionProduct.</li>
+<li>Khách lưu voucher (user_vouchers).</li>
+<li><b>Tích hợp vào checkout (S2):</b> validate điều kiện (min order, hạn, hạng thành viên, usage limit) → tính giảm giá → ghi VoucherUsage + OrderVoucher + tăng usage_count.</li>
+<li>Cron hết hạn voucher/khuyến mãi → EXPIRED.</li>
+</ul>
+
+<h2>Sprint 6 — Khách hàng thân thiết (M13)</h2>
+<ul>
+<li>Quản lý LoyaltyConfig (điểm theo sự kiện) &amp; MemberRank (ngưỡng chi tiêu).</li>
+<li>Tích điểm (EARN) khi đơn DELIVERED; đổi điểm (REDEEM) tại checkout.</li>
+<li>Tính/nâng hạng theo tổng chi tiêu → UserRankHistory; gắn quyền lợi (vd voucher riêng hạng).</li>
+</ul>
+
+<h2>Sprint 7 — Đánh giá &amp; nhận xét (M14)</h2>
+<ul>
+<li>Viết đánh giá (chỉ khi đã mua — kiểm tra OrderItem), kèm sao/ảnh.</li>
+<li>Kiểm duyệt đánh giá (admin), phản hồi của shop (ReviewReply), đánh dấu hữu ích.</li>
+<li>Cập nhật <span class="mono">rating_average</span>/<span class="mono">rating_count</span> sản phẩm + reindex ES.</li>
+</ul>
+
+<h2>Sprint 8 — Thông báo &amp; Tin nhắn (M22 + M16)</h2>
+<ul>
+<li>Hoàn thiện Notification: hộp thông báo, đánh dấu đã đọc; bắn ở các sự kiện đơn/duyệt/KM.</li>
+<li>Chat buyer–seller: Conversation + Message, đếm chưa đọc; auto-reply theo từ khóa. (Cân nhắc WebSocket/STOMP cho realtime.)</li>
+</ul>
+
+<h2>Sprint 9 — Cá nhân hóa &amp; gợi ý (M08)</h2>
+<ul>
+<li>Ghi user_product_views, user_search_history.</li>
+<li>Sinh product_recommendations (mua kèm / tương tự / theo lượt xem).</li>
+<li>API "gợi ý cho bạn", "sản phẩm liên quan".</li>
+</ul>
+
+<h2>Sprint 10 — Affiliate (M17)</h2>
+<ul>
+<li>Đăng ký &amp; duyệt đối tác → sinh mã affiliate.</li>
+<li>Tạo link, ghi click (affiliate_clicks), gắn affiliateCode vào đơn.</li>
+<li>Tính hoa hồng khi đơn hoàn tất; đối soát PENDING→APPROVED→PAID.</li>
+</ul>
+
+<h2>Sprint 11 — Quảng cáo &amp; Banner (M18)</h2>
+<ul>
+<li>Tạo &amp; duyệt chiến dịch quảng cáo (ngân sách, CPC, vị trí).</li>
+<li>Ghi click/chuyển đổi, trừ ngân sách, dừng khi hết.</li>
+<li>Quản lý banner trang chủ (lịch hiển thị).</li>
+</ul>
+
+<h2>Sprint 12 — Tin tức / CMS (M19)</h2>
+<ul>
+<li>CRUD NewsCategory, NewsArticle (DRAFT/PUBLISHED), đếm lượt xem; làm sạch HTML (OWASP sanitizer).</li>
+</ul>
+
+<h2>Sprint 13 — Quản trị hệ thống (M20)</h2>
+<ul>
+<li>SystemConfig (key-value), MenuItem động theo quyền.</li>
+<li>SystemLog (audit) qua AOP/interceptor.</li>
+<li>BackupLog + job sao lưu CSDL định kỳ.</li>
+<li>Hoàn thiện quản lý Permission &amp; gán role cho user (M02).</li>
+</ul>
+
+<h2>Sprint 14 — Báo cáo, Dashboard &amp; Hoàn thiện</h2>
+<ul>
+<li>Dashboard admin: người dùng, đơn, doanh thu toàn sàn.</li>
+<li>Báo cáo gian hàng: doanh thu, sản phẩm bán chạy, tồn kho.</li>
+<li><b>Hardening:</b> security review, kiểm thử tải, tối ưu truy vấn/index, hoàn thiện Swagger, viết tài liệu vận hành &amp; triển khai (Docker Compose: app + PG + ES + MinIO + Keycloak).</li>
+</ul>
+
+<!-- DEPENDENCIES -->
+<div class="pagebreak"></div>
+<h1>4. Sơ đồ phụ thuộc giữa các module</h1>
+<pre>
+[Common/Auth/RBAC] (đã có)
+        |
+   [M04 Store] [M06 Product/SKU] (đã có)
+        |            |
+        +------+-----+
+               |
+          [M09 Cart] ---> [M09 Order] <---> [M15 Stock]
+                               |
+              +----------------+----------------+
+              |                |                |
+        [M10 Payment]    [M11 Shipping]   [M12 Voucher]
+              |                                  |
+              +-------------+--------------------+
+                            |
+                      [M13 Loyalty]
+                            |
+                      [M14 Review] --> reindex [M08 Search]
+                            |
+              [M22 Notify][M16 Chat][M17 Affiliate][M18 Ads]
+                            |
+                  [M19 News][M20 Admin][M23 Report]
+</pre>
+<p class="note"><b>Quy tắc thứ tự:</b> không bắt đầu Voucher/Loyalty/Review trước khi Order chạy ổn; Affiliate phụ thuộc Order hoàn tất; Report làm sau cùng vì cần dữ liệu mọi module.</p>
+
+<!-- RISKS -->
+<h1>5. Rủi ro &amp; biện pháp</h1>
+<table>
+<tr><th>Rủi ro</th><th>Ảnh hưởng</th><th>Biện pháp</th></tr>
+<tr><td>Oversell (bán quá tồn) khi đặt đồng thời</td><td>Cao</td><td>Khóa bi quan/lạc quan trên product_variants; transaction giữ tồn nguyên tử.</td></tr>
+<tr><td>Tích hợp cổng thanh toán phức tạp</td><td>Cao</td><td>Làm COD trước; cổng online dùng sandbox, tách interface PaymentGateway.</td></tr>
+<tr><td>Đồng bộ Elasticsearch lệch dữ liệu</td><td>Vừa</td><td>Reindex sự kiện + job đồng bộ định kỳ; fallback truy vấn DB.</td></tr>
+<tr><td>Phình to nghiệp vụ đơn (đa gian hàng)</td><td>Vừa</td><td>Tách order_items theo store ngay từ S2; chuẩn hóa trạng thái.</td></tr>
+<tr><td>Thiếu test gây hồi quy</td><td>Vừa</td><td>DoD bắt buộc unit + integration test mỗi module.</td></tr>
+</table>
+
+<h1>6. Tiêu chí nghiệm thu tổng thể (MVP có thể bán hàng)</h1>
+<p>Hoàn thành <b>S0–S4</b> = <b>MVP vận hành thật</b>: khách đăng ký → tìm sản phẩm → thêm giỏ → đặt hàng → thanh toán (COD/online) → theo dõi vận chuyển → nhận hàng. Các sprint sau tăng chuyển đổi và mở rộng.</p>
+
+<hr>
+<p style="text-align:center;color:#888;font-size:10pt;">— Hết Kế hoạch phát triển GocGac v1.0 —</p>
+</body>
+</html>

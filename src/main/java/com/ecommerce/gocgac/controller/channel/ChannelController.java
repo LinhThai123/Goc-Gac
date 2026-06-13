@@ -28,7 +28,6 @@ import java.util.Optional;
  * - Public endpoints: Xem channel theo slug, list channels
  * - Protected endpoints: CRUD channel của mình
  */
-//TODO đang làm dở cập nhật thông tin channel 
 @Slf4j
 @RestController
 @RequestMapping("/api/channels")
@@ -197,13 +196,13 @@ public class ChannelController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('COOPERATIVE_MANAGER', 'SELLER', 'SUPER_ADMIN')")
-    @Operation(summary = "Xóa channel", 
+    @Operation(summary = "Xóa channel",
                description = "Xóa channel của bạn (soft delete - set isActive = false)")
     public ResponseEntity<MessageResponse> deleteChannel(@PathVariable Long id) {
         try {
             Long userId = getCurrentUserId();
             channelService.deleteChannel(id, userId);
-            
+
             MessageResponse response = new MessageResponse();
             response.setMessage("Xóa channel thành công");
             response.setStatus(HttpStatus.OK.value());
@@ -215,6 +214,48 @@ public class ChannelController {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.badRequest().body(response);
         }
+    }
+
+    // ========== Follow Endpoints ==========
+
+    /**
+     * Theo dõi channel
+     */
+    @PostMapping("/{id}/follow")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Theo dõi channel",
+               description = "Người dùng đã đăng nhập theo dõi một channel")
+    public ResponseEntity<MessageResponse> followChannel(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        channelService.followChannel(userId, id);
+        return ResponseEntity.ok(MessageResponse.ok("Đã theo dõi channel"));
+    }
+
+    /**
+     * Bỏ theo dõi channel
+     */
+    @DeleteMapping("/{id}/follow")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Bỏ theo dõi channel",
+               description = "Người dùng đã đăng nhập bỏ theo dõi một channel")
+    public ResponseEntity<MessageResponse> unfollowChannel(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        channelService.unfollowChannel(userId, id);
+        return ResponseEntity.ok(MessageResponse.ok("Đã bỏ theo dõi channel"));
+    }
+
+    /**
+     * Kiểm tra trạng thái theo dõi channel
+     */
+    @GetMapping("/{id}/is-following")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Kiểm tra theo dõi",
+               description = "Kiểm tra người dùng hiện tại có đang theo dõi channel không")
+    public ResponseEntity<MessageResponse> isFollowing(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        boolean following = channelService.isFollowing(userId, id);
+        return ResponseEntity.ok(MessageResponse.ok("Kiểm tra trạng thái theo dõi thành công",
+            java.util.Map.of("following", following)));
     }
 }
 

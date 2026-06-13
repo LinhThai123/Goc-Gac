@@ -24,7 +24,6 @@ import java.util.List;
  * - Public endpoints: Lấy danh sách categories, lấy category theo slug
  * - Protected endpoints: CRUD categories (yêu cầu ADMIN hoặc SUPER_ADMIN)
  */
-//TODO đang làm dở cập nhật thông tin category 
 @Slf4j
 @RestController
 @RequestMapping("/api/categories")
@@ -62,14 +61,38 @@ public class CategoryController {
     }
     
     /**
-     * Lấy category theo slug (public)
+     * Lấy cây danh mục active (public)
+     */
+    @GetMapping("/public/tree")
+    @Operation(summary = "Lấy cây danh mục active (public)",
+               description = "Lấy toàn bộ categories active dạng cây (root kèm children lồng nhau), không cần authentication")
+    public ResponseEntity<MessageResponse> getActiveCategoryTree() {
+        try {
+            List<CategoryResponse> tree = categoryService.getActiveCategoryTree();
+
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Lấy cây danh mục thành công");
+            response.setStatus(HttpStatus.OK.value());
+            response.setData(tree);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting category tree: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Lỗi khi lấy cây danh mục: " + e.getMessage());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * Lấy category active theo slug (public)
      */
     @GetMapping("/public/slug/{slug}")
     @Operation(summary = "Lấy category theo slug (public)", 
-               description = "Lấy thông tin category theo slug, không cần authentication")
+               description = "Lấy thông tin category active theo slug, không cần authentication")
     public ResponseEntity<MessageResponse> getCategoryBySlug(@PathVariable String slug) {
         try {
-            CategoryResponse category = categoryService.getCategoryBySlug(slug);
+            CategoryResponse category = categoryService.getActiveCategoryBySlug(slug);
             
             MessageResponse response = new MessageResponse();
             response.setMessage("Lấy thông tin category thành công");
@@ -120,7 +143,7 @@ public class CategoryController {
      */
     @GetMapping("/public/parent/{parentId}/children")
     @Operation(summary = "Lấy danh sách categories con (public)", 
-               description = "Lấy tất cả categories con của một category")
+               description = "Lấy tất cả categories con active của một category (parent phải active)")
     public ResponseEntity<MessageResponse> getChildCategories(@PathVariable Long parentId) {
         try {
             List<CategoryResponse> categories = categoryService.getChildCategories(parentId);
@@ -130,6 +153,12 @@ public class CategoryController {
             response.setStatus(HttpStatus.OK.value());
             response.setData(categories);
             return ResponseEntity.ok(response);
+        } catch (CategoryException e) {
+            log.error("Error getting child categories: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage(e.getMessage());
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         } catch (Exception e) {
             log.error("Error getting child categories: {}", e.getMessage());
             MessageResponse response = new MessageResponse();
@@ -166,6 +195,62 @@ public class CategoryController {
         }
     }
     
+    /**
+     * Lấy tất cả root categories (admin)
+     */
+    @GetMapping("/roots")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Lấy danh sách root categories (admin)",
+               description = "Lấy tất cả root categories (bao gồm inactive), yêu cầu ADMIN hoặc SUPER_ADMIN")
+    public ResponseEntity<MessageResponse> getAdminRootCategories() {
+        try {
+            List<CategoryResponse> categories = categoryService.getAdminRootCategories();
+
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Lấy danh sách root categories thành công");
+            response.setStatus(HttpStatus.OK.value());
+            response.setData(categories);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting admin root categories: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Lỗi khi lấy danh sách root categories: " + e.getMessage());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * Lấy danh sách categories con (admin)
+     */
+    @GetMapping("/{parentId}/children")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Lấy danh sách categories con (admin)",
+               description = "Lấy tất cả categories con (bao gồm inactive), yêu cầu ADMIN hoặc SUPER_ADMIN")
+    public ResponseEntity<MessageResponse> getAdminChildCategories(@PathVariable Long parentId) {
+        try {
+            List<CategoryResponse> categories = categoryService.getAdminChildCategories(parentId);
+
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Lấy danh sách categories con thành công");
+            response.setStatus(HttpStatus.OK.value());
+            response.setData(categories);
+            return ResponseEntity.ok(response);
+        } catch (CategoryException e) {
+            log.error("Error getting admin child categories: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage(e.getMessage());
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            log.error("Error getting admin child categories: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Lỗi khi lấy danh sách categories con: " + e.getMessage());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     /**
      * Lấy category theo ID
      */
@@ -267,7 +352,7 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Xóa category", 
-               description = "Xóa category (soft delete - set isActive = false), yêu cầu ADMIN hoặc SUPER_ADMIN")
+               description = "Xóa category (soft delete). Không xóa được nếu còn category con active hoặc sản phẩm đang dùng category này")
     public ResponseEntity<MessageResponse> deleteCategory(@PathVariable Long id) {
         try {
             categoryService.deleteCategory(id);

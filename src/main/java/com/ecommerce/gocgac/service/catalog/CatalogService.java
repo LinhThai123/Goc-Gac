@@ -320,9 +320,10 @@ public class CatalogService {
     }
     
     /**
-     * Validate duplicate product trong catalog
+     * Validate duplicate product trong catalog (với ownership validation)
      */
-    public boolean isProductInCatalog(Long catalogId, Long productId) {
+    public boolean isProductInCatalog(Long catalogId, Long userId, Long productId) {
+        validateOwnership(catalogId, userId);
         return catalogProductRepository.existsByCatalogIdAndProductId(catalogId, productId);
     }
     

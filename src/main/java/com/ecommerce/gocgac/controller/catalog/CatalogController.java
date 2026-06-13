@@ -15,11 +15,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,17 +28,20 @@ import java.util.List;
  * Controller cho Catalog (Catalog riêng cho từng shop)
  * - Protected endpoints: CRUD catalog của mình, quản lý products trong catalog
  */
-//TODO đang làm dở cập nhật thông tin catalog
 @Slf4j
 @RestController
 @RequestMapping("/api/catalogs")
-@RequiredArgsConstructor
 @Tag(name = "Catalog", description = "API quản lý Catalog (Catalog riêng cho shop)")
 @SecurityRequirement(name = "bearerAuth")
 public class CatalogController {
-    
+
     private final CatalogService catalogService;
     private final UserRepository userRepository;
+
+    public CatalogController(CatalogService catalogService, UserRepository userRepository) {
+        this.catalogService = catalogService;
+        this.userRepository = userRepository;
+    }
     
     /**
      * Lấy userId từ JWT token
@@ -279,21 +282,22 @@ public class CatalogController {
     public ResponseEntity<MessageResponse> checkProductInCatalog(
             @PathVariable Long id,
             @PathVariable Long productId) {
-        try {
-            boolean exists = catalogService.isProductInCatalog(id, productId);
-            
-            MessageResponse response = new MessageResponse();
-            response.setMessage(exists ? "Product đã có trong catalog" : "Product chưa có trong catalog");
-            response.setStatus(HttpStatus.OK.value());
-            response.setData(exists);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error checking product in catalog: {}", e.getMessage());
-            MessageResponse response = new MessageResponse();
-            response.setMessage("Lỗi khi kiểm tra: " + e.getMessage());
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        Long userId = getCurrentUserId();
+        boolean exists = catalogService.isProductInCatalog(id, userId, productId);
+
+        MessageResponse response = new MessageResponse();
+        response.setMessage(exists ? "Product đã có trong catalog" : "Product chưa có trong catalog");
+        response.setStatus(HttpStatus.OK.value());
+        response.setData(exists);
+        return ResponseEntity.ok(response);
+    }
+
+    @ExceptionHandler(CatalogException.class)
+    public ResponseEntity<MessageResponse> handleCatalogException(CatalogException e) {
+        log.error("Catalog error: {}", e.getMessage());
+        MessageResponse response = new MessageResponse();
+        response.setMessage(e.getMessage());
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+        return ResponseEntity.badRequest().body(response);
     }
 }
-

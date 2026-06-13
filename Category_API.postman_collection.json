@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Category API - CRUD Tests",
-    "description": "Postman collection cho testing Category CRUD API",
+    "description": "Postman collection cho testing Category API (public + admin).\n\nPublic: /public, /public/tree, /public/slug/{slug}, /public/roots, /public/parent/{parentId}/children\nAdmin: CRUD + /roots, /{parentId}/children\n\nBiến: baseUrl, adminToken, categoryId, parentId, categorySlug",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,6 +13,21 @@
     {
       "key": "adminToken",
       "value": "your_admin_token_here",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "parentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "categorySlug",
+      "value": "dien-tu",
       "type": "string"
     }
   ],
@@ -84,7 +99,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoryName\": \"Điện thoại\",\n  \"categorySlug\": \"dien-thoai\",\n  \"parentId\": 1,\n  \"description\": \"Danh mục điện thoại smartphone\",\n  \"displayOrder\": 1\n}"
+              "raw": "{\n  \"categoryName\": \"Điện thoại\",\n  \"categorySlug\": \"dien-thoai\",\n  \"parentId\": {{parentId}},\n  \"description\": \"Danh mục điện thoại smartphone\",\n  \"displayOrder\": 1\n}"
             },
             "url": {
               "raw": "{{baseUrl}}",
@@ -167,10 +182,106 @@
       ]
     },
     {
-      "name": "READ",
+      "name": "READ - Public",
       "item": [
         {
-          "name": "1. Lấy tất cả categories (Admin)",
+          "name": "1. Lấy active categories (flat)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public",
+              "host": ["{{baseUrl}}"],
+              "path": ["public"]
+            },
+            "description": "GET /api/categories/public — danh sách phẳng, chỉ active, sort displayOrder"
+          }
+        },
+        {
+          "name": "2. Lấy cây danh mục active (tree)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/tree",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "tree"]
+            },
+            "description": "GET /api/categories/public/tree — root kèm children lồng nhau trong field `children`"
+          }
+        },
+        {
+          "name": "3. Lấy category active theo slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/slug/{{categorySlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "slug", "{{categorySlug}}"]
+            },
+            "description": "GET /api/categories/public/slug/{slug} — chỉ category active; inactive → 404"
+          }
+        },
+        {
+          "name": "4. Lấy root categories active",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/roots",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "roots"]
+            },
+            "description": "GET /api/categories/public/roots — parent_id = null, isActive = true"
+          }
+        },
+        {
+          "name": "5. Lấy child categories active",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/parent/{{parentId}}/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "parent", "{{parentId}}", "children"]
+            },
+            "description": "GET /api/categories/public/parent/{parentId}/children — parent phải tồn tại và active"
+          }
+        },
+        {
+          "name": "ERROR: Slug không tồn tại hoặc inactive",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/slug/khong-ton-tai",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "slug", "khong-ton-tai"]
+            },
+            "description": "Kỳ vọng 404"
+          }
+        },
+        {
+          "name": "ERROR: Parent không tồn tại (children)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/parent/99999/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "parent", "99999", "children"]
+            },
+            "description": "Kỳ vọng 404"
+          }
+        }
+      ]
+    },
+    {
+      "name": "READ - Admin",
+      "item": [
+        {
+          "name": "1. Lấy tất cả categories",
           "request": {
             "method": "GET",
             "header": [
@@ -182,23 +293,12 @@
             "url": {
               "raw": "{{baseUrl}}",
               "host": ["{{baseUrl}}"]
-            }
+            },
+            "description": "GET /api/categories — gồm cả inactive, yêu cầu ADMIN/SUPER_ADMIN"
           }
         },
         {
-          "name": "2. Lấy active categories (Public)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/public",
-              "host": ["{{baseUrl}}"],
-              "path": ["public"]
-            }
-          }
-        },
-        {
-          "name": "3. Lấy category theo ID",
+          "name": "2. Lấy root categories (admin)",
           "request": {
             "method": "GET",
             "header": [
@@ -208,46 +308,47 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/roots",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
-            }
+              "path": ["roots"]
+            },
+            "description": "GET /api/categories/roots — gồm cả inactive"
           }
         },
         {
-          "name": "4. Lấy category theo slug (Public)",
+          "name": "3. Lấy child categories (admin)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/public/slug/dien-tu",
+              "raw": "{{baseUrl}}/{{parentId}}/children",
               "host": ["{{baseUrl}}"],
-              "path": ["public", "slug", "dien-tu"]
-            }
+              "path": ["{{parentId}}", "children"]
+            },
+            "description": "GET /api/categories/{parentId}/children — gồm cả inactive"
           }
         },
         {
-          "name": "5. Lấy root categories (Public)",
+          "name": "4. Lấy category theo ID",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/public/roots",
+              "raw": "{{baseUrl}}/{{categoryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["public", "roots"]
-            }
-          }
-        },
-        {
-          "name": "6. Lấy child categories",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/public/parent/1/children",
-              "host": ["{{baseUrl}}"],
-              "path": ["public", "parent", "1", "children"]
-            }
+              "path": ["{{categoryId}}"]
+            },
+            "description": "GET /api/categories/{id}"
           }
         },
         {
@@ -264,7 +365,26 @@
               "raw": "{{baseUrl}}/99999",
               "host": ["{{baseUrl}}"],
               "path": ["99999"]
-            }
+            },
+            "description": "Kỳ vọng 404"
+          }
+        },
+        {
+          "name": "ERROR: Parent không tồn tại (admin children)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/99999/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["99999", "children"]
+            },
+            "description": "Kỳ vọng 404"
           }
         }
       ]
@@ -291,9 +411,9 @@
               "raw": "{\n  \"categoryName\": \"Điện tử - Đã cập nhật\",\n  \"categorySlug\": \"dien-tu-cap-nhat\",\n  \"description\": \"Mô tả đã được cập nhật\",\n  \"imageUrl\": \"https://example.com/images/dien-tu-new.jpg\",\n  \"displayOrder\": 10,\n  \"isActive\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{categoryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
+              "path": ["{{categoryId}}"]
             }
           }
         },
@@ -316,9 +436,9 @@
               "raw": "{\n  \"categoryName\": \"Điện tử - Tên mới\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{categoryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
+              "path": ["{{categoryId}}"]
             }
           }
         },
@@ -366,10 +486,11 @@
               "raw": "{\n  \"isActive\": false\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{categoryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
-            }
+              "path": ["{{categoryId}}"]
+            },
+            "description": "Sau khi deactivate, GET public/slug và public/children sẽ 404 với category này"
           }
         },
         {
@@ -413,12 +534,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"parentId\": 1\n}"
+              "raw": "{\n  \"parentId\": {{categoryId}}\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{categoryId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
+              "path": ["{{categoryId}}"]
             }
           }
         }
@@ -441,11 +562,12 @@
               "raw": "{{baseUrl}}/5",
               "host": ["{{baseUrl}}"],
               "path": ["5"]
-            }
+            },
+            "description": "Leaf category, không có con active, không có sản phẩm gắn categoryId"
           }
         },
         {
-          "name": "ERROR: Category có con",
+          "name": "ERROR: Category có con active",
           "request": {
             "method": "DELETE",
             "header": [
@@ -455,10 +577,29 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/1",
+              "raw": "{{baseUrl}}/{{parentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["1"]
-            }
+              "path": ["{{parentId}}"]
+            },
+            "description": "Kỳ vọng 400 khi còn category con active"
+          }
+        },
+        {
+          "name": "ERROR: Category còn sản phẩm",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{categoryId}}"]
+            },
+            "description": "Kỳ vọng 400 khi còn sản phẩm dùng categoryId này"
           }
         },
         {
@@ -482,4 +623,3 @@
     }
   ]
 }
-

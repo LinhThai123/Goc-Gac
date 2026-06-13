@@ -1,0 +1,738 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<title>SRS - Nền tảng Thương mại điện tử GocGac</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+@page { size: 21cm 29.7cm; margin: 2.5cm 2cm 2.5cm 2.5cm; mso-page-orientation: portrait; }
+body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.45; color: #1a1a1a; }
+h1 { font-size: 20pt; color: #1f5f3f; border-bottom: 3px solid #1f5f3f; padding-bottom: 6px; margin-top: 28px; }
+h2 { font-size: 15pt; color: #1f5f3f; margin-top: 22px; border-left: 5px solid #2e8b57; padding-left: 8px; }
+h3 { font-size: 13pt; color: #2e6b4a; margin-top: 16px; }
+h4 { font-size: 12pt; color: #333; margin-top: 12px; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 10.5pt; }
+th { background: #2e8b57; color: #fff; border: 1px solid #1f5f3f; padding: 6px 8px; text-align: left; }
+td { border: 1px solid #b5cdbf; padding: 5px 8px; vertical-align: top; }
+tr:nth-child(even) td { background: #f3f9f5; }
+code, .mono { font-family: Consolas, "Courier New", monospace; font-size: 10pt; background: #eef4f0; padding: 1px 4px; }
+pre { background: #f5f7f6; border: 1px solid #cdddd3; padding: 10px; font-family: Consolas, monospace; font-size: 9.5pt; white-space: pre-wrap; }
+.cover { text-align: center; padding-top: 120px; }
+.cover h1 { border: none; font-size: 34pt; color: #1f5f3f; }
+.cover .sub { font-size: 16pt; color: #555; margin-top: 10px; }
+.badge-done { background:#2e8b57; color:#fff; padding:1px 6px; font-size:9pt; border-radius:3px; }
+.badge-todo { background:#c0392b; color:#fff; padding:1px 6px; font-size:9pt; border-radius:3px; }
+.badge-part { background:#e08e0b; color:#fff; padding:1px 6px; font-size:9pt; border-radius:3px; }
+.note { background:#fff8e1; border-left:4px solid #e08e0b; padding:8px 12px; margin:10px 0; }
+ul, ol { margin-top:4px; }
+.toc a { text-decoration: none; color:#1f5f3f; }
+.pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- ============== COVER ============== -->
+<div class="cover">
+<p style="font-size:13pt; color:#2e8b57; letter-spacing:3px;">TÀI LIỆU ĐẶC TẢ YÊU CẦU PHẦN MỀM</p>
+<h1>GocGac</h1>
+<p class="sub">Nền tảng Thương mại điện tử cho Hợp tác xã &amp; Sản phẩm OCOP</p>
+<p class="sub">Software Requirements Specification (SRS)</p>
+<br><br><br>
+<table style="width:60%; margin:0 auto; font-size:12pt;">
+<tr><td><b>Phiên bản</b></td><td>1.0</td></tr>
+<tr><td><b>Ngày phát hành</b></td><td>12/06/2026</td></tr>
+<tr><td><b>Trạng thái</b></td><td>Bản nháp (Draft)</td></tr>
+<tr><td><b>Người soạn</b></td><td>linhnv</td></tr>
+<tr><td><b>Công nghệ</b></td><td>Java 21, Spring Boot 3, PostgreSQL, Keycloak, Elasticsearch, MinIO</td></tr>
+</table>
+</div>
+
+<!-- ============== TOC ============== -->
+<div class="pagebreak"></div>
+<h1>Mục lục</h1>
+<div class="toc">
+<p><b>1. Giới thiệu</b> — Mục đích · Phạm vi · Thuật ngữ · Tài liệu tham khảo</p>
+<p><b>2. Mô tả tổng quan</b> — Bối cảnh · Tác nhân (Actors) · Ràng buộc · Giả định</p>
+<p><b>3. Kiến trúc &amp; Công nghệ hệ thống</b></p>
+<p><b>4. Danh sách Module → Chức năng → Use Case</b> (23 module)</p>
+<p><b>5. Đặc tả Use Case chi tiết</b> (các luồng trọng yếu)</p>
+<p><b>6. Mô hình dữ liệu &amp; Sơ đồ ERD</b></p>
+<p><b>7. Quy trình nghiệp vụ (Business Process Flows)</b></p>
+<p><b>8. Yêu cầu phi chức năng (Non-Functional Requirements)</b></p>
+<p><b>9. Phụ lục</b> — Danh sách API · Enums · Lộ trình phát triển (Roadmap)</p>
+</div>
+
+<p class="note"><b>Chú thích trạng thái triển khai:</b>
+<span class="badge-done">ĐÃ LÀM</span> đã có Controller + Service hoạt động &nbsp;|&nbsp;
+<span class="badge-part">MỘT PHẦN</span> đã có entity/migration, code chưa hoàn chỉnh &nbsp;|&nbsp;
+<span class="badge-todo">CHƯA LÀM</span> mới chỉ có bảng CSDL/entity, chưa có nghiệp vụ.</p>
+
+<!-- ============== 1. INTRODUCTION ============== -->
+<div class="pagebreak"></div>
+<h1>1. Giới thiệu</h1>
+
+<h2>1.1. Mục đích</h2>
+<p>Tài liệu này đặc tả đầy đủ các yêu cầu chức năng và phi chức năng của <b>GocGac</b> — nền tảng thương mại điện tử (sàn TMĐT) đa người bán, được thiết kế đặc thù cho <b>Hợp tác xã (HTX)</b>, hộ kinh doanh cá thể và <b>sản phẩm OCOP</b> (mỗi xã một sản phẩm). Tài liệu phục vụ làm cơ sở để đội phát triển hoàn thiện các module còn lại, làm căn cứ nghiệm thu và kiểm thử.</p>
+
+<h2>1.2. Phạm vi sản phẩm</h2>
+<p>GocGac là một sàn TMĐT cho phép:</p>
+<ul>
+<li>HTX/người bán đăng ký mở gian hàng, xây dựng kênh thương hiệu (microsite), đăng bán sản phẩm có truy xuất nguồn gốc, chứng nhận OCOP.</li>
+<li>Khách hàng tìm kiếm, đặt mua, thanh toán, theo dõi vận chuyển, đánh giá sản phẩm và tham gia chương trình khách hàng thân thiết.</li>
+<li>Quản trị viên kiểm duyệt HTX, sản phẩm, quảng cáo và vận hành toàn hệ thống.</li>
+<li>Đối tác tiếp thị liên kết (affiliate) quảng bá sản phẩm và nhận hoa hồng.</li>
+</ul>
+
+<h2>1.3. Định nghĩa, thuật ngữ &amp; từ viết tắt</h2>
+<table>
+<tr><th>Thuật ngữ</th><th>Giải thích</th></tr>
+<tr><td>HTX</td><td>Hợp tác xã — đơn vị kinh doanh tập thể, có nhiều thành viên.</td></tr>
+<tr><td>OCOP</td><td>One Commune One Product — chương trình "Mỗi xã một sản phẩm".</td></tr>
+<tr><td>SKU</td><td>Stock Keeping Unit — đơn vị quản lý kho cho từng biến thể sản phẩm.</td></tr>
+<tr><td>Channel</td><td>Kênh/microsite thương hiệu của gian hàng (trang giới thiệu câu chuyện thương hiệu).</td></tr>
+<tr><td>Catalog</td><td>Bộ sưu tập sản phẩm do gian hàng tự nhóm để trưng bày.</td></tr>
+<tr><td>RBAC</td><td>Role-Based Access Control — phân quyền theo vai trò.</td></tr>
+<tr><td>Affiliate</td><td>Tiếp thị liên kết — cộng tác viên giới thiệu sản phẩm hưởng hoa hồng.</td></tr>
+<tr><td>JWT</td><td>JSON Web Token — token xác thực do Keycloak cấp.</td></tr>
+<tr><td>UC</td><td>Use Case — ca sử dụng.</td></tr>
+</table>
+
+<h2>1.4. Tài liệu tham khảo</h2>
+<ul>
+<li>Mã nguồn dự án GocGac (Spring Boot) — thư mục <span class="mono">src/main/java/com/ecommerce/gocgac</span>.</li>
+<li>Các file migration Flyway — <span class="mono">src/main/resources/db/migration (V1–V12)</span>.</li>
+<li>Bộ Postman collection: Category_API, Channel_API.</li>
+<li>Đặc tả OpenAPI/Swagger: <span class="mono">/swagger-ui.html</span>.</li>
+</ul>
+
+<!-- ============== 2. OVERALL DESCRIPTION ============== -->
+<div class="pagebreak"></div>
+<h1>2. Mô tả tổng quan</h1>
+
+<h2>2.1. Bối cảnh sản phẩm</h2>
+<p>GocGac là hệ thống backend dạng <b>REST API</b> theo kiến trúc phân lớp (Controller → Service → Repository), kết nối tới PostgreSQL, đánh chỉ mục tìm kiếm bằng Elasticsearch, lưu trữ file media trên MinIO, và xác thực/định danh người dùng qua Keycloak (OAuth2/OIDC). Frontend (web/mobile) là client riêng tiêu thụ API.</p>
+
+<h2>2.2. Tác nhân hệ thống (Actors)</h2>
+<table>
+<tr><th>Actor</th><th>Vai trò (Role code)</th><th>Mô tả</th></tr>
+<tr><td>Khách (Guest)</td><td>—</td><td>Người dùng chưa đăng nhập: xem sản phẩm, danh mục, kênh, tìm kiếm.</td></tr>
+<tr><td>Khách hàng</td><td>CUSTOMER</td><td>Đã đăng ký: mua hàng, đánh giá, theo dõi kênh, tích điểm, xin gia nhập HTX.</td></tr>
+<tr><td>Người bán cá thể</td><td>SELLER</td><td>Sở hữu gian hàng cá nhân, đăng bán sản phẩm.</td></tr>
+<tr><td>Quản lý HTX</td><td>COOPERATIVE_MANAGER</td><td>Quản lý HTX, gian hàng HTX, thành viên, sản phẩm, kênh, catalog.</td></tr>
+<tr><td>Đối tác Affiliate</td><td>(CUSTOMER + affiliate)</td><td>Cộng tác viên tiếp thị liên kết, tạo link, nhận hoa hồng.</td></tr>
+<tr><td>Quản trị viên</td><td>ADMIN</td><td>Kiểm duyệt HTX, sản phẩm, quảng cáo; quản lý nội dung.</td></tr>
+<tr><td>Quản trị tối cao</td><td>SUPER_ADMIN</td><td>Toàn quyền: quản lý vai trò, cấu hình, sao lưu, nhật ký hệ thống.</td></tr>
+<tr><td>Hệ thống/Cron</td><td>SYSTEM</td><td>Tác vụ tự động: hết hạn voucher, tính hạng thành viên, đồng bộ ES.</td></tr>
+</table>
+
+<h2>2.3. Ràng buộc thiết kế</h2>
+<ul>
+<li>Backend: Java 21, Spring Boot 3.x; CSDL PostgreSQL (cổng 5433), schema quản lý bằng Flyway (<span class="mono">ddl-auto=validate</span>).</li>
+<li>Xác thực bắt buộc qua Keycloak realm <span class="mono">gocgac-htx</span>; API stateless (không session), bảo vệ bằng JWT Bearer token.</li>
+<li>Tiền tệ mặc định: VND. Múi giờ: Asia/Ho_Chi_Minh.</li>
+<li>File media lưu trên MinIO bucket <span class="mono">gocgac</span>.</li>
+</ul>
+
+<h2>2.4. Giả định &amp; phụ thuộc</h2>
+<ul>
+<li>Keycloak, PostgreSQL, Elasticsearch, MinIO phải sẵn sàng trước khi hệ thống chạy.</li>
+<li>Cổng thanh toán (VNPay/Momy...) và đơn vị vận chuyển (GHN/GHTK...) được tích hợp qua API bên thứ ba ở các giai đoạn sau.</li>
+</ul>
+
+<!-- ============== 3. ARCHITECTURE ============== -->
+<div class="pagebreak"></div>
+<h1>3. Kiến trúc &amp; Công nghệ hệ thống</h1>
+<table>
+<tr><th>Thành phần</th><th>Công nghệ</th><th>Vai trò</th></tr>
+<tr><td>Ngôn ngữ/Framework</td><td>Java 21, Spring Boot 3, Spring MVC, Spring Data JPA</td><td>Xử lý nghiệp vụ, REST API.</td></tr>
+<tr><td>Bảo mật</td><td>Spring Security + OAuth2 Resource Server, Keycloak (OIDC)</td><td>Xác thực JWT, phân quyền RBAC.</td></tr>
+<tr><td>CSDL</td><td>PostgreSQL + Flyway</td><td>Lưu trữ giao dịch, versioning schema.</td></tr>
+<tr><td>Tìm kiếm</td><td>Elasticsearch</td><td>Full-text search, gợi ý sản phẩm.</td></tr>
+<tr><td>Lưu trữ file</td><td>MinIO (S3-compatible)</td><td>Ảnh, video, tài liệu.</td></tr>
+<tr><td>Email</td><td>Spring Mail (SMTP Gmail)</td><td>Xác thực email, thông báo.</td></tr>
+<tr><td>API Docs</td><td>SpringDoc OpenAPI / Swagger UI</td><td>Tài liệu &amp; thử nghiệm API.</td></tr>
+<tr><td>Mapping</td><td>ModelMapper, Lombok</td><td>Chuyển đổi DTO/Entity.</td></tr>
+<tr><td>Bảo vệ XSS</td><td>OWASP Java HTML Sanitizer</td><td>Làm sạch nội dung HTML.</td></tr>
+</table>
+
+<pre>
+[ Web / Mobile Client ]
+        |  HTTPS (JWT Bearer)
+        v
+[ Spring Boot REST API ]----[ Keycloak (OIDC/JWT) ]
+    |        |        |
+    v        v        v
+[PostgreSQL][Elasticsearch][MinIO]
+        |
+     [ SMTP Mail ]
+</pre>
+
+<!-- ============== 4. MODULES ============== -->
+<div class="pagebreak"></div>
+<h1>4. Danh sách Module → Chức năng → Use Case</h1>
+<p>Hệ thống được chia thành <b>23 module</b>. Mỗi module liệt kê các chức năng và use case kèm tác nhân và trạng thái triển khai.</p>
+
+<!-- M01 -->
+<h2>M01 — Xác thực &amp; Quản lý tài khoản <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M01-01</td><td>Đăng ký tài khoản</td><td>Guest</td><td>Tạo tài khoản (email, mật khẩu, loại người dùng), đồng bộ Keycloak.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-02</td><td>Đăng nhập</td><td>Guest</td><td>Xác thực, nhận access/refresh token JWT.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-03</td><td>Làm mới token</td><td>User</td><td>Cấp lại access token từ refresh token.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-04</td><td>Đăng xuất</td><td>User</td><td>Vô hiệu hóa phiên/token.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-05</td><td>Đổi mật khẩu</td><td>User</td><td>Đổi mật khẩu khi đã đăng nhập.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-06</td><td>Xác thực email</td><td>User</td><td>Gửi/nhận token xác thực email.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-07</td><td>Gửi lại email xác thực</td><td>User</td><td>Yêu cầu gửi lại liên kết xác thực.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M01-08</td><td>Quên mật khẩu / đặt lại</td><td>Guest</td><td>Gửi token reset qua email (bảng password_resets).</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M01-09</td><td>Đăng nhập mạng xã hội</td><td>Guest</td><td>Google/Facebook/Apple (bảng social_logins).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M01-10</td><td>Xem/cập nhật hồ sơ</td><td>Customer</td><td>Xem và sửa thông tin cá nhân.</td><td><span class="badge-done">✔</span></td></tr>
+</table>
+
+<!-- M02 -->
+<h2>M02 — Phân quyền &amp; Vai trò (RBAC) <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M02-01</td><td>Xem danh sách vai trò</td><td>Super Admin</td><td>Liệt kê tất cả role.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M02-02</td><td>Tạo vai trò</td><td>Super Admin</td><td>Thêm role mới.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M02-03</td><td>Cập nhật vai trò</td><td>Super Admin</td><td>Sửa role.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M02-04</td><td>Xóa vai trò</td><td>Super Admin</td><td>Xóa role.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M02-05</td><td>Quản lý quyền (permission)</td><td>Super Admin</td><td>CRUD permission, gán quyền vào role.</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M02-06</td><td>Gán vai trò cho người dùng</td><td>Admin</td><td>Cấp/thu hồi role cho user.</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M02-07</td><td>Phân quyền theo gian hàng</td><td>Store Owner</td><td>Cấp quyền nhân viên gian hàng (store_permissions).</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M03 -->
+<h2>M03 — Quản lý Hợp tác xã <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M03-01</td><td>Bắt đầu đăng ký HTX</td><td>User</td><td>Khởi tạo bản đăng ký nhiều bước (DRAFT).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-02</td><td>Nộp từng bước đăng ký</td><td>User</td><td>Lưu thông tin theo bước: cơ bản, liên hệ, địa chỉ, người đại diện, pháp lý, sản phẩm.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-03</td><td>Nộp hồ sơ đăng ký</td><td>User</td><td>Chuyển trạng thái SUBMITTED chờ duyệt.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-04</td><td>Xem hồ sơ đăng ký của tôi</td><td>User</td><td>Theo dõi tiến độ/trạng thái.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-05</td><td>Duyệt hồ sơ HTX</td><td>Admin</td><td>Duyệt → tạo Cooperative + gán role COOPERATIVE_MANAGER + tạo Store.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-06</td><td>Từ chối hồ sơ HTX</td><td>Admin</td><td>Từ chối kèm lý do.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-07</td><td>Xem HTX của tôi</td><td>Coop Manager</td><td>Lấy thông tin HTX đang quản lý.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-08</td><td>Cập nhật thông tin HTX</td><td>Coop Manager</td><td>Sửa hồ sơ, logo, banner, mô tả.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-09</td><td>Xem HTX công khai (slug)</td><td>Guest</td><td>Trang giới thiệu HTX.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-10</td><td>Xin gia nhập HTX</td><td>Customer</td><td>Gửi yêu cầu thành viên (PENDING).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-11</td><td>Duyệt/từ chối thành viên</td><td>Coop Manager</td><td>Xét duyệt đơn xin gia nhập.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M03-12</td><td>Xem danh sách thành viên</td><td>Coop Manager</td><td>Liệt kê thành viên HTX.</td><td><span class="badge-done">✔</span></td></tr>
+</table>
+
+<!-- M04 -->
+<h2>M04 — Quản lý Gian hàng (Store) <span class="badge-part">MỘT PHẦN</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M04-01</td><td>Xem danh sách gian hàng</td><td>Guest</td><td>Liệt kê gian hàng.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M04-02</td><td>Xem chi tiết gian hàng</td><td>Guest</td><td>Theo id/cooperative/seller.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M04-03</td><td>Tạo gian hàng</td><td>Seller</td><td>Mở gian hàng cá thể.</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M04-04</td><td>Cập nhật gian hàng</td><td>Store Owner</td><td>Sửa thông tin, logo, banner.</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M04-05</td><td>Quản lý danh mục nội bộ gian hàng</td><td>Store Owner</td><td>CRUD store_categories (cây danh mục riêng).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M04-06</td><td>Đăng ký gói dịch vụ gian hàng</td><td>Store Owner</td><td>store_subscriptions (gói, gia hạn).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M04-07</td><td>Cấu hình trả lời tự động</td><td>Store Owner</td><td>auto_replies theo từ khóa.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M05 -->
+<h2>M05 — Quản lý Danh mục sản phẩm <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M05-01</td><td>Xem danh mục (công khai)</td><td>Guest</td><td>Danh sách danh mục đang hoạt động.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M05-02</td><td>Xem cây danh mục</td><td>Guest</td><td>Danh mục đa cấp (level 1-3).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M05-03</td><td>Xem danh mục theo slug</td><td>Guest</td><td>SEO-friendly.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M05-04</td><td>Tạo danh mục</td><td>Admin</td><td>Thêm danh mục cha/con.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M05-05</td><td>Cập nhật danh mục</td><td>Admin</td><td>Sửa tên, mô tả, trạng thái.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M05-06</td><td>Xóa danh mục</td><td>Admin</td><td>Xóa/ẩn danh mục.</td><td><span class="badge-done">✔</span></td></tr>
+</table>
+
+<!-- M06 -->
+<h2>M06 — Quản lý Sản phẩm &amp; SKU <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M06-01</td><td>Tạo sản phẩm</td><td>Seller/Coop</td><td>Tạo sản phẩm kèm biến thể SKU, ảnh, thuộc tính.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-02</td><td>Xem danh sách sản phẩm (lọc, phân trang)</td><td>Store Owner</td><td>Lọc theo trạng thái, danh mục.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-03</td><td>Xem chi tiết sản phẩm</td><td>All</td><td>Đầy đủ SKU, ảnh, thuộc tính.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-04</td><td>Cập nhật sản phẩm</td><td>Store Owner</td><td>Sửa thông tin, SKU.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-05</td><td>Đổi trạng thái / xóa mềm</td><td>Store Owner</td><td>ACTIVE/INACTIVE, soft delete (deletedAt).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-06</td><td>Xem sản phẩm công khai</td><td>Guest</td><td>Endpoint public (đã duyệt).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-07</td><td>Gửi sản phẩm chờ duyệt</td><td>Store Owner</td><td>Chuyển approvalStatus = PENDING.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-08</td><td>Duyệt sản phẩm</td><td>Admin</td><td>APPROVED → hiển thị công khai + index ES.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-09</td><td>Từ chối sản phẩm</td><td>Admin</td><td>REJECTED kèm lý do.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M06-10</td><td>Quản lý sản phẩm combo</td><td>Store Owner</td><td>product_combo_items.</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M06-11</td><td>Truy xuất nguồn gốc (QR)</td><td>Store Owner/Guest</td><td>product_origin_tracking (nguyên liệu, quy trình, QR).</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M06-12</td><td>Quản lý video/thuộc tính sản phẩm</td><td>Store Owner</td><td>product_videos, product_attributes.</td><td><span class="badge-part">◐</span></td></tr>
+</table>
+
+<!-- M07 -->
+<h2>M07 — Kênh thương hiệu &amp; Catalog <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M07-01</td><td>Tạo kênh (microsite)</td><td>Store Owner</td><td>Trang thương hiệu: banner, câu chuyện, theme.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-02</td><td>Cập nhật kênh</td><td>Store Owner</td><td>Sửa nội dung, theme, SEO meta.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-03</td><td>Xem kênh theo slug / id</td><td>Guest</td><td>Trang công khai.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-04</td><td>Xóa kênh</td><td>Store Owner</td><td>Xóa kênh.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-05</td><td>Theo dõi / bỏ theo dõi kênh</td><td>Customer</td><td>channel_follows (cập nhật follower_count qua trigger).</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M07-06</td><td>Tạo catalog</td><td>Store Owner</td><td>Bộ sưu tập sản phẩm trưng bày.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-07</td><td>Cập nhật/xóa catalog</td><td>Store Owner</td><td>Quản lý catalog.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-08</td><td>Thêm/bớt sản phẩm vào catalog</td><td>Store Owner</td><td>catalog_products (product_count auto).</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M07-09</td><td>Xem catalog của gian hàng</td><td>Guest</td><td>Liệt kê catalog theo store.</td><td><span class="badge-done">✔</span></td></tr>
+</table>
+
+<!-- M08 -->
+<h2>M08 — Tìm kiếm &amp; Gợi ý <span class="badge-part">MỘT PHẦN</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M08-01</td><td>Tìm kiếm sản phẩm</td><td>Guest</td><td>Full-text qua Elasticsearch, lọc &amp; phân trang.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M08-02</td><td>Đồng bộ chỉ mục ES</td><td>System</td><td>Index/update/delete khi sản phẩm thay đổi.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M08-03</td><td>Lưu lịch sử tìm kiếm</td><td>Customer</td><td>user_search_history.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M08-04</td><td>Gợi ý sản phẩm</td><td>Customer</td><td>product_recommendations (mua kèm, tương tự, theo lượt xem).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M08-05</td><td>Ghi nhận lượt xem sản phẩm</td><td>Customer</td><td>user_product_views (cá nhân hóa).</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M09 -->
+<h2>M09 — Giỏ hàng &amp; Đơn hàng <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M09-01</td><td>Thêm vào giỏ</td><td>Customer</td><td>cart_items theo SKU.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-02</td><td>Xem/cập nhật/xóa giỏ</td><td>Customer</td><td>Sửa số lượng, xóa item.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-03</td><td>Đặt hàng (checkout)</td><td>Customer</td><td>Tạo Order từ giỏ, tách theo gian hàng (order_items có store_id).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-04</td><td>Áp dụng voucher / điểm thưởng</td><td>Customer</td><td>Tính subtotal, phí ship, giảm giá, điểm.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-05</td><td>Xem danh sách / chi tiết đơn</td><td>Customer</td><td>Lịch sử đơn hàng.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-06</td><td>Hủy đơn</td><td>Customer</td><td>Hủy kèm lý do (nếu chưa giao).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-07</td><td>Xác nhận / xử lý đơn</td><td>Store Owner</td><td>CONFIRMED → PROCESSING → SHIPPING.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-08</td><td>Cập nhật trạng thái đơn</td><td>Store/System</td><td>order_status_history ghi vết.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M09-09</td><td>Yêu cầu trả hàng/hoàn tiền</td><td>Customer</td><td>RETURNED.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M10 -->
+<h2>M10 — Thanh toán <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M10-01</td><td>Chọn phương thức thanh toán</td><td>Customer</td><td>COD, chuyển khoản, thẻ, ví điện tử.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M10-02</td><td>Khởi tạo giao dịch cổng thanh toán</td><td>Customer</td><td>Tích hợp gateway (VNPay/Momo...).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M10-03</td><td>Xử lý callback/IPN</td><td>System</td><td>Cập nhật payment_status, order.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M10-04</td><td>Hoàn tiền</td><td>Admin/System</td><td>REFUNDED, ghi payments.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M11 -->
+<h2>M11 — Vận chuyển &amp; Theo dõi <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M11-01</td><td>Quản lý đơn vị vận chuyển</td><td>Admin</td><td>shipping_providers.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M11-02</td><td>Tạo vận đơn</td><td>Store/System</td><td>shipping_tracking (mã vận đơn, dự kiến giao).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M11-03</td><td>Cập nhật sự kiện vận chuyển</td><td>System</td><td>shipping_events (hành trình đơn).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M11-04</td><td>Khách theo dõi đơn</td><td>Customer</td><td>Xem trạng thái vận chuyển.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M11-05</td><td>Tính phí vận chuyển</td><td>System</td><td>Theo địa chỉ, trọng lượng.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M12 -->
+<h2>M12 — Khuyến mãi &amp; Voucher <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M12-01</td><td>Tạo voucher</td><td>Store Owner</td><td>Giảm giá SP/ship, theo % hoặc cố định.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M12-02</td><td>Lưu voucher</td><td>Customer</td><td>user_vouchers.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M12-03</td><td>Áp dụng voucher khi đặt hàng</td><td>Customer</td><td>Kiểm tra điều kiện, hạn mức, hạng thành viên.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M12-04</td><td>Ghi nhận sử dụng voucher</td><td>System</td><td>voucher_usage, order_vouchers, tăng usage_count.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M12-05</td><td>Tạo chương trình khuyến mãi</td><td>Store Owner</td><td>promotions (giảm giá/bundle/flash sale) + promotion_products.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M12-06</td><td>Tự động hết hạn voucher/KM</td><td>System</td><td>Cron cập nhật EXPIRED.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M13 -->
+<h2>M13 — Khách hàng thân thiết (Loyalty) <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M13-01</td><td>Cấu hình điểm thưởng</td><td>Admin</td><td>loyalty_config theo sự kiện.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M13-02</td><td>Tích điểm</td><td>System</td><td>loyalty_transactions (EARN) khi mua/đánh giá...</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M13-03</td><td>Đổi điểm</td><td>Customer</td><td>REDEEM khi thanh toán.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M13-04</td><td>Quản lý hạng thành viên</td><td>Admin</td><td>member_ranks (ngưỡng chi tiêu, quyền lợi).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M13-05</td><td>Tính/nâng hạng thành viên</td><td>System</td><td>user_rank_history theo tổng chi tiêu.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M14 -->
+<h2>M14 — Đánh giá &amp; Nhận xét <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M14-01</td><td>Viết đánh giá sản phẩm</td><td>Customer</td><td>Sao 1-5, nội dung, ảnh; xác thực đã mua.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M14-02</td><td>Kiểm duyệt đánh giá</td><td>Admin</td><td>PENDING → APPROVED/REJECTED.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M14-03</td><td>Phản hồi đánh giá</td><td>Store Owner</td><td>review_replies.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M14-04</td><td>Đánh dấu hữu ích</td><td>Customer</td><td>helpful_count.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M14-05</td><td>Tính điểm trung bình sản phẩm</td><td>System</td><td>Cập nhật rating_average/rating_count.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M15 -->
+<h2>M15 — Quản lý Tồn kho <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M15-01</td><td>Nhập/xuất kho</td><td>Store Owner</td><td>stock_transactions (IN/OUT/ADJUSTMENT/RETURN).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M15-02</td><td>Giữ hàng khi đặt</td><td>System</td><td>reserved_quantity, available_quantity tự tính.</td><td><span class="badge-part">◐</span></td></tr>
+<tr><td>UC-M15-03</td><td>Cảnh báo tồn kho thấp</td><td>System</td><td>Thông báo khi dưới ngưỡng.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M15-04</td><td>Lịch sử biến động kho</td><td>Store Owner</td><td>Truy vết theo SKU.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M16 -->
+<h2>M16 — Tin nhắn &amp; Chăm sóc khách hàng <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M16-01</td><td>Bắt đầu hội thoại</td><td>Customer</td><td>conversations (buyer-seller-store).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M16-02</td><td>Gửi/nhận tin nhắn</td><td>Customer/Store</td><td>messages, đếm chưa đọc.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M16-03</td><td>Trả lời tự động</td><td>System</td><td>auto_replies theo từ khóa.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M16-04</td><td>Đánh dấu đã đọc / đóng hội thoại</td><td>User</td><td>is_read, status CLOSED.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M17 -->
+<h2>M17 — Tiếp thị liên kết (Affiliate) <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M17-01</td><td>Đăng ký làm đối tác</td><td>Customer</td><td>affiliate_registrations.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M17-02</td><td>Duyệt đối tác</td><td>Admin</td><td>Tạo affiliate_partners + mã affiliate.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M17-03</td><td>Tạo link tiếp thị</td><td>Affiliate</td><td>affiliate_links theo sản phẩm/gian hàng.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M17-04</td><td>Ghi nhận click</td><td>System</td><td>affiliate_clicks.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M17-05</td><td>Tính hoa hồng đơn hàng</td><td>System</td><td>affiliate_commissions khi đơn hoàn tất.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M17-06</td><td>Đối soát/chi trả hoa hồng</td><td>Admin</td><td>PENDING → APPROVED → PAID.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M18 -->
+<h2>M18 — Quảng cáo &amp; Banner <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M18-01</td><td>Tạo chiến dịch quảng cáo</td><td>Store Owner</td><td>ad_campaigns (vị trí, ngân sách, CPC).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M18-02</td><td>Duyệt quảng cáo</td><td>Admin</td><td>approval_status.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M18-03</td><td>Ghi nhận click/chuyển đổi</td><td>System</td><td>ad_clicks, trừ ngân sách.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M18-04</td><td>Quản lý banner trang chủ</td><td>Admin</td><td>banners (vị trí, lịch hiển thị).</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M19 -->
+<h2>M19 — Tin tức &amp; Nội dung (CMS) <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M19-01</td><td>Quản lý danh mục tin</td><td>Admin</td><td>news_categories.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M19-02</td><td>Soạn/đăng bài viết</td><td>Admin</td><td>news_articles (DRAFT/PUBLISHED).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M19-03</td><td>Xem tin tức</td><td>Guest</td><td>Danh sách/chi tiết, đếm lượt xem.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M20 -->
+<h2>M20 — Quản trị hệ thống <span class="badge-part">MỘT PHẦN</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M20-01</td><td>Kiểm duyệt sản phẩm</td><td>Admin</td><td>Danh sách chờ duyệt + duyệt/từ chối.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M20-02</td><td>Kiểm duyệt HTX</td><td>Admin</td><td>Danh sách đăng ký + duyệt/từ chối.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M20-03</td><td>Cấu hình hệ thống</td><td>Super Admin</td><td>system_configs (key-value).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M20-04</td><td>Quản lý menu động</td><td>Super Admin</td><td>menu_items theo quyền.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M20-05</td><td>Nhật ký hệ thống</td><td>Admin</td><td>system_logs (audit).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M20-06</td><td>Sao lưu dữ liệu</td><td>Super Admin</td><td>backup_logs.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- M21 -->
+<h2>M21 — Lưu trữ file (MinIO) <span class="badge-done">ĐÃ LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M21-01</td><td>Tải file lên</td><td>User</td><td>Upload ảnh/video lên MinIO.</td><td><span class="badge-done">✔</span></td></tr>
+<tr><td>UC-M21-02</td><td>Xóa file</td><td>User</td><td>Xóa theo tên file.</td><td><span class="badge-done">✔</span></td></tr>
+</table>
+
+<!-- M22 -->
+<h2>M22 — Thông báo <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M22-01</td><td>Gửi thông báo</td><td>System</td><td>notifications (đơn hàng, duyệt, KM...).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M22-02</td><td>Xem/đánh dấu đã đọc</td><td>User</td><td>Quản lý hộp thông báo.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M22-03</td><td>Gửi email giao dịch</td><td>System</td><td>Email xác nhận đơn, đặt lại MK.</td><td><span class="badge-part">◐</span></td></tr>
+</table>
+
+<!-- M23 -->
+<h2>M23 — Phân tích hành vi &amp; Báo cáo <span class="badge-todo">CHƯA LÀM</span></h2>
+<table>
+<tr><th>Mã UC</th><th>Use Case</th><th>Actor</th><th>Mô tả</th><th>TT</th></tr>
+<tr><td>UC-M23-01</td><td>Ghi nhận phiên truy cập</td><td>System</td><td>user_sessions (thiết bị, page views).</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M23-02</td><td>Báo cáo doanh thu gian hàng</td><td>Store Owner</td><td>Thống kê đơn, doanh thu, sản phẩm bán chạy.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M23-03</td><td>Dashboard quản trị</td><td>Admin</td><td>Tổng quan người dùng, đơn, doanh thu toàn sàn.</td><td><span class="badge-todo">✗</span></td></tr>
+<tr><td>UC-M23-04</td><td>Lưu tùy chọn người dùng</td><td>System</td><td>user_preferences.</td><td><span class="badge-todo">✗</span></td></tr>
+</table>
+
+<!-- ============== 5. DETAILED USE CASES ============== -->
+<div class="pagebreak"></div>
+<h1>5. Đặc tả Use Case chi tiết (luồng trọng yếu)</h1>
+
+<h2>5.1. UC-M03-05 — Duyệt hồ sơ đăng ký HTX</h2>
+<table>
+<tr><th>Mục</th><th>Nội dung</th></tr>
+<tr><td>Tác nhân chính</td><td>Quản trị viên (ADMIN)</td></tr>
+<tr><td>Tiền điều kiện</td><td>Tồn tại hồ sơ đăng ký ở trạng thái SUBMITTED; admin đã đăng nhập.</td></tr>
+<tr><td>Hậu điều kiện</td><td>Tạo bản ghi Cooperative + Store; user được gán role COOPERATIVE_MANAGER; gửi email thông báo.</td></tr>
+<tr><td>Luồng chính</td><td>1. Admin mở danh sách hồ sơ chờ duyệt.<br>2. Admin xem chi tiết (giấy phép, mã số thuế, người đại diện).<br>3. Admin chọn "Duyệt".<br>4. Hệ thống tạo Cooperative từ dữ liệu đăng ký, tạo Store mặc định, cập nhật role người dùng, đổi trạng thái APPROVED, lưu reviewedBy/reviewedAt.<br>5. Gửi email/thông báo cho người đăng ký.</td></tr>
+<tr><td>Luồng thay thế</td><td>3a. Admin chọn "Từ chối" → nhập lý do → trạng thái REJECTED → gửi thông báo (UC-M03-06).</td></tr>
+<tr><td>Ngoại lệ</td><td>Mã số thuế/slug đã tồn tại → báo lỗi, không tạo.</td></tr>
+</table>
+
+<h2>5.2. UC-M06-01 — Tạo sản phẩm kèm SKU</h2>
+<table>
+<tr><th>Mục</th><th>Nội dung</th></tr>
+<tr><td>Tác nhân chính</td><td>SELLER / COOPERATIVE_MANAGER</td></tr>
+<tr><td>Tiền điều kiện</td><td>Người dùng sở hữu gian hàng; đã đăng nhập.</td></tr>
+<tr><td>Hậu điều kiện</td><td>Sản phẩm được tạo (DRAFT), kèm danh sách SKU, ảnh, thuộc tính.</td></tr>
+<tr><td>Luồng chính</td><td>1. Người bán nhập thông tin sản phẩm (tên, mô tả, loại, danh mục).<br>2. Thêm 1..n biến thể SKU (giá, tồn, size/màu/chất liệu, barcode).<br>3. Tải ảnh/video.<br>4. Hệ thống resolve store_id từ user, sinh product_code, lưu sản phẩm + SKU.<br>5. Trả về ProductResponse.</td></tr>
+<tr><td>Quy tắc</td><td>SKU phải duy nhất; available_quantity = stock - reserved (tự tính khi cập nhật).</td></tr>
+<tr><td>Tiếp theo</td><td>Gửi duyệt (UC-M06-07) → Admin duyệt (UC-M06-08) → index Elasticsearch.</td></tr>
+</table>
+
+<h2>5.3. UC-M09-03 — Đặt hàng (Checkout)</h2>
+<table>
+<tr><th>Mục</th><th>Nội dung</th></tr>
+<tr><td>Tác nhân chính</td><td>CUSTOMER</td></tr>
+<tr><td>Tiền điều kiện</td><td>Giỏ hàng có sản phẩm còn tồn; khách đã đăng nhập &amp; có địa chỉ giao.</td></tr>
+<tr><td>Hậu điều kiện</td><td>Tạo Order (PENDING), trừ/giữ tồn kho, ghi order_status_history, khởi tạo thanh toán.</td></tr>
+<tr><td>Luồng chính</td><td>1. Khách chọn sản phẩm, nhập địa chỉ nhận.<br>2. Áp dụng voucher/điểm thưởng (tùy chọn).<br>3. Hệ thống tính subtotal, phí ship, giảm giá, tổng tiền.<br>4. Tách đơn theo gian hàng (order_items.store_id).<br>5. Chọn phương thức thanh toán → tạo Payment.<br>6. Giữ tồn (reserved_quantity), tạo Order, sinh order_code.<br>7. Gửi thông báo + email xác nhận.</td></tr>
+<tr><td>Ngoại lệ</td><td>3a. Voucher không hợp lệ/hết hạn → báo lỗi.<br>6a. Tồn không đủ → từ chối, gợi ý điều chỉnh số lượng.</td></tr>
+</table>
+
+<h2>5.4. UC-M01-02 — Đăng nhập</h2>
+<table>
+<tr><th>Mục</th><th>Nội dung</th></tr>
+<tr><td>Tác nhân chính</td><td>Guest</td></tr>
+<tr><td>Luồng chính</td><td>1. Nhập email + mật khẩu.<br>2. Hệ thống xác thực qua Keycloak.<br>3. Trả về access token + refresh token + thông tin user.</td></tr>
+<tr><td>Ngoại lệ</td><td>Sai thông tin → 401; email chưa xác thực → yêu cầu xác thực; tài khoản SUSPENDED → từ chối.</td></tr>
+</table>
+
+<!-- ============== 6. ERD ============== -->
+<div class="pagebreak"></div>
+<h1>6. Mô hình dữ liệu &amp; Sơ đồ ERD</h1>
+<p>Hệ thống gồm <b>~70 bảng</b>, nhóm theo 17 phân hệ. Dưới đây là quan hệ cốt lõi (PK/FK) và mã Mermaid ERD để render trực quan (dán vào <span class="mono">mermaid.live</span> hoặc plugin Mermaid của VS Code).</p>
+
+<h2>6.1. Quan hệ cốt lõi (bảng tóm tắt)</h2>
+<table>
+<tr><th>Bảng cha</th><th>Quan hệ</th><th>Bảng con</th><th>Khóa ngoại</th></tr>
+<tr><td>users</td><td>1 — N</td><td>user_roles → roles</td><td>user_id, role_id</td></tr>
+<tr><td>roles</td><td>N — N</td><td>permissions (role_permissions)</td><td>role_id, permission_id</td></tr>
+<tr><td>users</td><td>1 — 1</td><td>cooperatives</td><td>user_id</td></tr>
+<tr><td>cooperative_registrations</td><td>1 — 1</td><td>cooperatives</td><td>registration_id</td></tr>
+<tr><td>cooperatives</td><td>1 — N</td><td>cooperative_members</td><td>cooperative_id</td></tr>
+<tr><td>cooperatives / users</td><td>1 — N</td><td>stores</td><td>cooperative_id / seller_id</td></tr>
+<tr><td>stores</td><td>1 — N</td><td>store_categories (tự tham chiếu parent_id)</td><td>store_id, parent_id</td></tr>
+<tr><td>categories</td><td>1 — N</td><td>categories (cây, parent_id)</td><td>parent_id</td></tr>
+<tr><td>stores</td><td>1 — N</td><td>products</td><td>store_id</td></tr>
+<tr><td>categories</td><td>1 — N</td><td>products</td><td>category_id</td></tr>
+<tr><td>products</td><td>1 — N</td><td>product_variants (SKU)</td><td>product_id</td></tr>
+<tr><td>products</td><td>1 — N</td><td>product_images / attributes / videos</td><td>product_id</td></tr>
+<tr><td>products</td><td>1 — 1</td><td>product_origin_tracking</td><td>product_id</td></tr>
+<tr><td>stores</td><td>1 — N</td><td>channels / shop_catalogs</td><td>store_id</td></tr>
+<tr><td>shop_catalogs</td><td>1 — N</td><td>catalog_products → products</td><td>catalog_id, product_id</td></tr>
+<tr><td>channels</td><td>1 — N</td><td>channel_follows → users</td><td>channel_id, user_id</td></tr>
+<tr><td>users</td><td>1 — 1</td><td>carts</td><td>user_id</td></tr>
+<tr><td>carts</td><td>1 — N</td><td>cart_items → product_variants</td><td>cart_id, variant_id</td></tr>
+<tr><td>users</td><td>1 — N</td><td>orders</td><td>user_id</td></tr>
+<tr><td>orders</td><td>1 — N</td><td>order_items → products/variants/stores</td><td>order_id</td></tr>
+<tr><td>orders</td><td>1 — N</td><td>order_status_history / payments / shipping_tracking</td><td>order_id</td></tr>
+<tr><td>shipping_tracking</td><td>1 — N</td><td>shipping_events</td><td>tracking_id</td></tr>
+<tr><td>stores</td><td>1 — N</td><td>vouchers / promotions</td><td>store_id</td></tr>
+<tr><td>vouchers</td><td>1 — N</td><td>user_vouchers / order_vouchers / voucher_usage</td><td>voucher_id</td></tr>
+<tr><td>products</td><td>1 — N</td><td>product_reviews → users/orders</td><td>product_id</td></tr>
+<tr><td>product_reviews</td><td>1 — N</td><td>review_replies</td><td>review_id</td></tr>
+<tr><td>product_variants</td><td>1 — N</td><td>stock_transactions</td><td>variant_id</td></tr>
+<tr><td>users</td><td>1 — N</td><td>loyalty_transactions / user_rank_history</td><td>user_id</td></tr>
+<tr><td>member_ranks</td><td>1 — N</td><td>user_rank_history</td><td>rank_id</td></tr>
+<tr><td>users</td><td>1 — N</td><td>conversations → stores</td><td>buyer_id/seller_id/store_id</td></tr>
+<tr><td>conversations</td><td>1 — N</td><td>messages</td><td>conversation_id</td></tr>
+<tr><td>affiliate_partners</td><td>1 — N</td><td>affiliate_links / affiliate_commissions</td><td>partner_id</td></tr>
+<tr><td>stores</td><td>1 — N</td><td>ad_campaigns → ad_clicks</td><td>store_id, campaign_id</td></tr>
+<tr><td>news_categories</td><td>1 — N</td><td>news_articles</td><td>category_id</td></tr>
+</table>
+
+<h2>6.2. Mã Mermaid ERD (phần lõi nghiệp vụ)</h2>
+<pre>
+erDiagram
+    USERS ||--o{ USER_ROLES : has
+    ROLES ||--o{ USER_ROLES : assigned
+    ROLES ||--o{ ROLE_PERMISSIONS : grants
+    PERMISSIONS ||--o{ ROLE_PERMISSIONS : in
+    USERS ||--o| COOPERATIVES : owns
+    COOPERATIVE_REGISTRATIONS ||--o| COOPERATIVES : becomes
+    COOPERATIVES ||--o{ COOPERATIVE_MEMBERS : has
+    COOPERATIVES ||--o{ STORES : runs
+    USERS ||--o{ STORES : seller
+    STORES ||--o{ STORE_CATEGORIES : groups
+    STORES ||--o{ PRODUCTS : sells
+    CATEGORIES ||--o{ CATEGORIES : parent
+    CATEGORIES ||--o{ PRODUCTS : classifies
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : has
+    PRODUCTS ||--o{ PRODUCT_IMAGES : has
+    PRODUCTS ||--o| PRODUCT_ORIGIN_TRACKING : traces
+    STORES ||--o{ CHANNELS : brands
+    STORES ||--o{ SHOP_CATALOGS : curates
+    SHOP_CATALOGS ||--o{ CATALOG_PRODUCTS : contains
+    PRODUCTS ||--o{ CATALOG_PRODUCTS : in
+    CHANNELS ||--o{ CHANNEL_FOLLOWS : followed
+    USERS ||--o| CARTS : owns
+    CARTS ||--o{ CART_ITEMS : contains
+    PRODUCT_VARIANTS ||--o{ CART_ITEMS : ref
+    USERS ||--o{ ORDERS : places
+    ORDERS ||--o{ ORDER_ITEMS : contains
+    PRODUCTS ||--o{ ORDER_ITEMS : ref
+    ORDERS ||--o{ ORDER_STATUS_HISTORY : logs
+    ORDERS ||--o{ PAYMENTS : paid_by
+    ORDERS ||--o{ SHIPPING_TRACKING : shipped
+    SHIPPING_TRACKING ||--o{ SHIPPING_EVENTS : tracks
+    STORES ||--o{ VOUCHERS : issues
+    VOUCHERS ||--o{ VOUCHER_USAGE : used
+    PRODUCTS ||--o{ PRODUCT_REVIEWS : reviewed
+    PRODUCT_REVIEWS ||--o{ REVIEW_REPLIES : replies
+    PRODUCT_VARIANTS ||--o{ STOCK_TRANSACTIONS : moves
+    USERS ||--o{ LOYALTY_TRANSACTIONS : earns
+    MEMBER_RANKS ||--o{ USER_RANK_HISTORY : ranks
+    USERS ||--o{ CONVERSATIONS : chats
+    CONVERSATIONS ||--o{ MESSAGES : has
+    AFFILIATE_PARTNERS ||--o{ AFFILIATE_LINKS : creates
+    AFFILIATE_PARTNERS ||--o{ AFFILIATE_COMMISSIONS : earns
+    STORES ||--o{ AD_CAMPAIGNS : runs
+    NEWS_CATEGORIES ||--o{ NEWS_ARTICLES : has
+</pre>
+
+<!-- ============== 7. BUSINESS PROCESS ============== -->
+<div class="pagebreak"></div>
+<h1>7. Quy trình nghiệp vụ (Business Process Flows)</h1>
+
+<h2>7.1. Quy trình HTX gia nhập &amp; bán hàng</h2>
+<pre>
+Người dùng đăng ký HTX (nhiều bước)
+        |
+   Nộp hồ sơ (SUBMITTED)
+        |
+   Admin kiểm duyệt ----No---> Từ chối (REJECTED) --> Thông báo lý do
+        | Yes
+   Tạo Cooperative + Store + gán COOPERATIVE_MANAGER
+        |
+   Tạo kênh/catalog, đăng sản phẩm (DRAFT)
+        |
+   Gửi sản phẩm duyệt (PENDING)
+        |
+   Admin duyệt SP ----No---> REJECTED (sửa lại)
+        | Yes (APPROVED)
+   Index Elasticsearch --> Hiển thị công khai --> Bán hàng
+</pre>
+
+<h2>7.2. Quy trình mua hàng (Order-to-Delivery)</h2>
+<pre>
+Khách duyệt/tìm SP --> Thêm giỏ --> Checkout
+        |
+   Áp voucher/điểm --> Tính tiền --> Chọn thanh toán
+        |
+   Tạo Order (PENDING) + giữ tồn (reserved)
+        |
+   Thanh toán
+     |--- COD ------------------> Order CONFIRMED
+     |--- Online (gateway) --> callback/IPN
+                |--Success--> paymentStatus=COMPLETED, Order CONFIRMED
+                |--Fail-----> Hủy giữ tồn, Order CANCELLED
+        |
+   Người bán xử lý: CONFIRMED -> PROCESSING -> SHIPPING
+        |
+   Vận chuyển cập nhật shipping_events -> DELIVERED
+        |
+   Tích điểm loyalty + tính hoa hồng affiliate (nếu có)
+        |
+   Khách đánh giá sản phẩm (xác thực đã mua)
+</pre>
+
+<h2>7.3. Quy trình kiểm duyệt sản phẩm</h2>
+<pre>
+SP DRAFT --(gửi duyệt)--> PENDING --> Admin xem
+   |-- Đạt --> APPROVED --> index ES --> public
+   |-- Không đạt --> REJECTED (+lý do) --> người bán chỉnh sửa --> gửi lại
+</pre>
+
+<h2>7.4. Quy trình hoàn tiền / trả hàng</h2>
+<pre>
+Khách yêu cầu trả hàng (đơn DELIVERED)
+   --> Người bán/Admin xét duyệt
+        |-- Chấp nhận --> RETURNED --> hoàn kho (stock IN) --> Payment REFUNDED
+        |-- Từ chối --> giữ nguyên trạng thái + lý do
+</pre>
+
+<!-- ============== 8. NON-FUNCTIONAL ============== -->
+<div class="pagebreak"></div>
+<h1>8. Yêu cầu phi chức năng (NFR)</h1>
+<table>
+<tr><th>Loại</th><th>Yêu cầu</th></tr>
+<tr><td>Hiệu năng</td><td>API trả về &lt; 500ms với 95% request thông thường; tìm kiếm ES &lt; 1s; hỗ trợ ≥ 500 người dùng đồng thời.</td></tr>
+<tr><td>Bảo mật</td><td>Toàn bộ API qua HTTPS; xác thực JWT; phân quyền RBAC; làm sạch HTML (OWASP sanitizer) chống XSS; mật khẩu mã hóa; chống SQL Injection bằng JPA tham số hóa.</td></tr>
+<tr><td>Khả dụng</td><td>Uptime mục tiêu ≥ 99.5%; sao lưu CSDL định kỳ (backup_logs).</td></tr>
+<tr><td>Khả mở rộng</td><td>Kiến trúc phân lớp, stateless; có thể scale ngang; tách Elasticsearch/MinIO riêng.</td></tr>
+<tr><td>Khả bảo trì</td><td>Schema versioning bằng Flyway; tài liệu API Swagger; logging tập trung (system_logs).</td></tr>
+<tr><td>Khả dùng</td><td>Hỗ trợ tiếng Việt; URL thân thiện SEO (slug); responsive client.</td></tr>
+<tr><td>Tuân thủ</td><td>Lưu thông tin pháp lý HTX (mã số thuế, giấy phép); truy xuất nguồn gốc sản phẩm OCOP.</td></tr>
+<tr><td>Khả kiểm toán</td><td>Ghi vết thay đổi trạng thái đơn (order_status_history), nhật ký hệ thống, lịch sử hạng thành viên.</td></tr>
+</table>
+
+<!-- ============== 9. APPENDIX ============== -->
+<div class="pagebreak"></div>
+<h1>9. Phụ lục</h1>
+
+<h2>9.1. Danh sách API hiện có (đã triển khai)</h2>
+<table>
+<tr><th>Method</th><th>Endpoint</th><th>Chức năng</th></tr>
+<tr><td>POST</td><td>/api/auth/register</td><td>Đăng ký</td></tr>
+<tr><td>POST</td><td>/api/auth/login</td><td>Đăng nhập</td></tr>
+<tr><td>POST</td><td>/api/auth/refresh-token</td><td>Làm mới token</td></tr>
+<tr><td>POST</td><td>/api/auth/logout</td><td>Đăng xuất</td></tr>
+<tr><td>POST</td><td>/api/auth/change-password</td><td>Đổi mật khẩu</td></tr>
+<tr><td>POST</td><td>/api/auth/verify-email</td><td>Xác thực email</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td>/api/products</td><td>CRUD sản phẩm + SKU</td></tr>
+<tr><td>GET</td><td>/api/products/search</td><td>Tìm kiếm Elasticsearch</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td>/api/categories</td><td>CRUD danh mục</td></tr>
+<tr><td>GET</td><td>/api/store, /api/store/{id}</td><td>Xem gian hàng</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td>/api/store-categories</td><td>Danh mục gian hàng</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td>/api/channels</td><td>Quản lý kênh</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td>/api/catalogs</td><td>Quản lý catalog</td></tr>
+<tr><td>POST/GET/PUT</td><td>/api/cooperative/registration/**</td><td>Đăng ký HTX</td></tr>
+<tr><td>GET/PUT</td><td>/api/cooperative/**</td><td>Quản lý HTX</td></tr>
+<tr><td>POST/GET/PUT</td><td>/api/cooperative/member/**</td><td>Thành viên HTX</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/products/**</td><td>Kiểm duyệt sản phẩm</td></tr>
+<tr><td>GET/POST</td><td>/api/admin/cooperative/**</td><td>Kiểm duyệt HTX</td></tr>
+<tr><td>GET/POST/PUT/DELETE</td><td>/api/admin/roles</td><td>Quản lý vai trò</td></tr>
+<tr><td>POST/DELETE</td><td>/api/storage/**</td><td>Upload/xóa file MinIO</td></tr>
+<tr><td>GET/PUT</td><td>/api/customer/profile</td><td>Hồ sơ khách hàng</td></tr>
+</table>
+
+<h2>9.2. Bảng Enum hệ thống</h2>
+<table>
+<tr><th>Enum</th><th>Giá trị</th></tr>
+<tr><td>UserType</td><td>CUSTOMER, SELLER, COOPERATIVE_MANAGER, ADMIN</td></tr>
+<tr><td>UserStatus</td><td>ACTIVE, INACTIVE, SUSPENDED</td></tr>
+<tr><td>ProductType</td><td>PHYSICAL, DIGITAL, SERVICE, VOUCHER</td></tr>
+<tr><td>ApprovalStatus</td><td>DRAFT, PENDING, APPROVED, REJECTED</td></tr>
+<tr><td>OrderStatus</td><td>PENDING, CONFIRMED, PROCESSING, SHIPPING, DELIVERED, CANCELLED, RETURNED</td></tr>
+<tr><td>PaymentMethod</td><td>CREDIT_CARD, BANK_TRANSFER, COD, E_WALLET</td></tr>
+<tr><td>PaymentStatus</td><td>PENDING, COMPLETED, FAILED, REFUNDED</td></tr>
+<tr><td>VoucherType</td><td>PRODUCT_DISCOUNT, SHIPPING_DISCOUNT</td></tr>
+<tr><td>DiscountType</td><td>FIXED, PERCENTAGE</td></tr>
+<tr><td>PromotionType</td><td>DISCOUNT, BUNDLE, FLASH_SALE</td></tr>
+<tr><td>ReviewStatus</td><td>PENDING, APPROVED, REJECTED</td></tr>
+<tr><td>StockTransactionType</td><td>IN, OUT, ADJUSTMENT, RETURN</td></tr>
+<tr><td>CommissionStatus</td><td>PENDING, APPROVED, PAID</td></tr>
+<tr><td>CooperativeType</td><td>PRODUCER, TRADING, SERVICE, MIXED</td></tr>
+</table>
+
+<h2>9.3. Lộ trình phát triển đề xuất (Roadmap)</h2>
+<p>Dựa trên trạng thái hiện tại, đề xuất thứ tự ưu tiên hoàn thiện các module còn thiếu:</p>
+<table>
+<tr><th>Giai đoạn</th><th>Module ưu tiên</th><th>Lý do</th></tr>
+<tr><td><b>GĐ 1 — Lõi mua bán</b></td><td>M09 Giỏ hàng &amp; Đơn hàng, M10 Thanh toán, M15 Tồn kho, M11 Vận chuyển</td><td>Hoàn thiện luồng mua bán cốt lõi — điều kiện để sàn vận hành thực tế.</td></tr>
+<tr><td><b>GĐ 2 — Tăng chuyển đổi</b></td><td>M12 Voucher/Khuyến mãi, M13 Loyalty, M14 Đánh giá</td><td>Thúc đẩy mua lại và niềm tin khách hàng.</td></tr>
+<tr><td><b>GĐ 3 — Tương tác</b></td><td>M16 Tin nhắn, M22 Thông báo, M08 Gợi ý &amp; cá nhân hóa</td><td>Nâng trải nghiệm và CSKH.</td></tr>
+<tr><td><b>GĐ 4 — Tăng trưởng</b></td><td>M17 Affiliate, M18 Quảng cáo, M19 Tin tức</td><td>Kênh marketing &amp; doanh thu phụ.</td></tr>
+<tr><td><b>GĐ 5 — Vận hành &amp; phân tích</b></td><td>M20 Quản trị hệ thống, M23 Báo cáo/Dashboard</td><td>Giám sát, báo cáo, sao lưu, cấu hình.</td></tr>
+</table>
+
+<p class="note"><b>Tổng kết trạng thái:</b> Đã hoàn thiện nền tảng định danh, HTX, gian hàng, danh mục, sản phẩm+SKU, kênh/catalog, tìm kiếm và kiểm duyệt. Cần xây dựng tiếp toàn bộ luồng giao dịch (giỏ hàng → đơn → thanh toán → vận chuyển), khuyến mãi/loyalty, đánh giá, tin nhắn, affiliate, quảng cáo, CMS và quản trị/báo cáo.</p>
+
+<hr>
+<p style="text-align:center; color:#888; font-size:10pt;">— Hết tài liệu SRS GocGac v1.0 —</p>
+
+</body>
+</html>

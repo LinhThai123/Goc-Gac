@@ -264,6 +264,10 @@ public class ProductService {
             throw new ProductException("Bạn không có quyền cập nhật sản phẩm này");
         }
         
+        if (product.getApprovalStatus() == ApprovalStatus.PENDING) {
+            throw new ProductException("Sản phẩm đang chờ duyệt, không thể cập nhật");
+        }
+        
         // Lấy danh sách SKU hiện tại
         List<ProductVariant> existingVariants = productVariantRepository.findAllByProductId(productId);
         
@@ -469,6 +473,9 @@ public class ProductService {
             if (hasImportantChanges) {
                 product.setApprovalStatus(ApprovalStatus.DRAFT);
                 product.setRejectionReason(null);
+                product.setApprovedAt(null);
+                product.setApprovedBy(null);
+                product.setIsVerified(false);
                 log.info("Product {} status changed to DRAFT due to important updates", productId);
             }
         }
@@ -489,6 +496,73 @@ public class ProductService {
         
         // Convert to response
         return convertToProductResponse(updatedProduct, finalVariants);
+    }
+    
+    /**
+     * Store gửi sản phẩm lên admin duyệt
+     */
+    @Transactional
+    public ProductResponse submitProductForApproval(Long userId, Long productId) {
+        Long storeId = getStoreIdByUserId(userId);
+        
+        Product product = productRepository.findByIdAndStoreId(productId, storeId)
+            .orElseThrow(() -> new ProductException("Sản phẩm không tồn tại hoặc không thuộc về store của bạn"));
+        
+        if (product.getStatus() == ProductStatus.DELETED) {
+            throw new ProductException("Không thể gửi duyệt sản phẩm đã xóa");
+        }
+        
+        if (product.getApprovalStatus() == ApprovalStatus.APPROVED) {
+            throw new ProductException("Sản phẩm đã được duyệt");
+        }
+        
+        if (product.getApprovalStatus() == ApprovalStatus.PENDING) {
+            throw new ProductException("Sản phẩm đang chờ duyệt");
+        }
+        
+        List<ProductVariant> variants = productVariantRepository.findAllByProductId(productId);
+        if (variants.isEmpty()) {
+            throw new ProductException("Sản phẩm phải có ít nhất 1 SKU trước khi gửi duyệt");
+        }
+        
+        product.setApprovalStatus(ApprovalStatus.PENDING);
+        product.setRejectionReason(null);
+        product.setApprovedAt(null);
+        product.setApprovedBy(null);
+        product.setIsVerified(false);
+        
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product {} submitted for approval by Store {}", productId, storeId);
+        
+        reindexProductSafely(updatedProduct.getId());
+        
+        return convertToProductResponse(updatedProduct, variants);
+    }
+    
+    /**
+     * Store rút lại sản phẩm đang chờ duyệt
+     */
+    @Transactional
+    public ProductResponse withdrawProductApproval(Long userId, Long productId) {
+        Long storeId = getStoreIdByUserId(userId);
+        
+        Product product = productRepository.findByIdAndStoreId(productId, storeId)
+            .orElseThrow(() -> new ProductException("Sản phẩm không tồn tại hoặc không thuộc về store của bạn"));
+        
+        if (product.getApprovalStatus() != ApprovalStatus.PENDING) {
+            throw new ProductException("Chỉ có thể rút lại sản phẩm đang chờ duyệt");
+        }
+        
+        product.setApprovalStatus(ApprovalStatus.DRAFT);
+        product.setRejectionReason(null);
+        
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product {} approval withdrawn by Store {}", productId, storeId);
+        
+        reindexProductSafely(updatedProduct.getId());
+        
+        List<ProductVariant> variants = productVariantRepository.findAllByProductId(productId);
+        return convertToProductResponse(updatedProduct, variants);
     }
     
     /**
@@ -589,6 +663,14 @@ public class ProductService {
         response.setSkus(skuResponses);
         
         return response;
+    }
+    
+    private void reindexProductSafely(Long productId) {
+        try {
+            productSearchService.indexProduct(productId);
+        } catch (Exception e) {
+            log.error("Failed to re-index product {} to Elasticsearch: {}", productId, e.getMessage());
+        }
     }
     
     /**
@@ -715,6 +797,120 @@ public class ProductService {
             .collect(Collectors.toList());
         
         return new PageImpl<>(productResponses, pageable, products.getTotalElements());
+    }
+    
+    /**
+     * Admin lấy danh sách sản phẩm để kiểm duyệt
+     */
+    public Page<ProductResponse> getProductsForAdmin(
+            Long storeId,
+            ProductStatus status,
+            ApprovalStatus approvalStatus,
+            ProductType productType,
+            Long categoryId,
+            Boolean hasVariants,
+            String keyword,
+            boolean includeSkus,
+            Pageable pageable) {
+        
+        Page<Product> products = productRepository.findAllWithFilters(
+            storeId,
+            status,
+            approvalStatus,
+            productType,
+            categoryId,
+            hasVariants,
+            keyword,
+            pageable
+        );
+        
+        List<ProductResponse> productResponses = products.getContent().stream()
+            .map(product -> {
+                List<ProductVariant> variants = includeSkus
+                    ? productVariantRepository.findAllByProductId(product.getId())
+                    : List.of();
+                ProductResponse response = convertToProductResponse(product, variants);
+                if (!includeSkus) {
+                    response.setSkus(null);
+                }
+                return response;
+            })
+            .collect(Collectors.toList());
+        
+        return new PageImpl<>(productResponses, pageable, products.getTotalElements());
+    }
+    
+    /**
+     * Admin lấy chi tiết sản phẩm bất kỳ để kiểm duyệt
+     */
+    public ProductResponse getProductByIdForAdmin(Long productId) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ProductException("Sản phẩm không tồn tại"));
+        
+        List<ProductVariant> variants = productVariantRepository.findAllByProductId(productId);
+        return convertToProductResponse(product, variants);
+    }
+    
+    /**
+     * Admin duyệt sản phẩm
+     */
+    @Transactional
+    public ProductResponse approveProduct(Long adminId, Long productId) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ProductException("Sản phẩm không tồn tại"));
+        
+        if (product.getStatus() == ProductStatus.DELETED) {
+            throw new ProductException("Không thể duyệt sản phẩm đã xóa");
+        }
+        
+        if (product.getApprovalStatus() != ApprovalStatus.PENDING) {
+            throw new ProductException("Chỉ có thể duyệt sản phẩm đang chờ duyệt");
+        }
+        
+        product.setApprovalStatus(ApprovalStatus.APPROVED);
+        product.setRejectionReason(null);
+        product.setApprovedAt(LocalDateTime.now());
+        product.setApprovedBy(adminId);
+        product.setIsVerified(true);
+        
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product {} approved by Admin {}", productId, adminId);
+        
+        reindexProductSafely(updatedProduct.getId());
+        
+        List<ProductVariant> variants = productVariantRepository.findAllByProductId(productId);
+        return convertToProductResponse(updatedProduct, variants);
+    }
+    
+    /**
+     * Admin từ chối sản phẩm
+     */
+    @Transactional
+    public ProductResponse rejectProduct(Long adminId, Long productId, String rejectionReason) {
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ProductException("Sản phẩm không tồn tại"));
+        
+        if (product.getApprovalStatus() != ApprovalStatus.PENDING) {
+            throw new ProductException("Chỉ có thể từ chối sản phẩm đang chờ duyệt");
+        }
+        
+        if (rejectionReason == null || rejectionReason.trim().isEmpty()) {
+            throw new ProductException("Lý do từ chối không được để trống");
+        }
+        
+        product.setApprovalStatus(ApprovalStatus.REJECTED);
+        product.setRejectionReason(XssSanitizer.sanitize(rejectionReason));
+        product.setApprovedAt(null);
+        product.setApprovedBy(adminId);
+        product.setIsVerified(false);
+        
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product {} rejected by Admin {}", productId, adminId);
+        
+        reindexProductSafely(updatedProduct.getId());
+        
+        List<ProductVariant> variants = productVariantRepository.findAllByProductId(productId);
+        return convertToProductResponse(updatedProduct, variants);
     }
     
     // ========== Public Methods (cho người dùng chưa đăng nhập và người mua hàng) ==========

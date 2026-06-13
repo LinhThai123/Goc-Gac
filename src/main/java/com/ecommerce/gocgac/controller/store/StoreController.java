@@ -1,9 +1,18 @@
 package com.ecommerce.gocgac.controller.store;
 
 import com.ecommerce.gocgac.common.response.MessageResponse;
+import com.ecommerce.gocgac.common.service.CurrentUserService;
+import com.ecommerce.gocgac.dto.store.CreateStoreRequest;
+import com.ecommerce.gocgac.dto.store.UpdateStoreRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Tag(name = "Store", description = "API quản lý Store")
 public class StoreController {
     private final StoreService storeService;
+    private final CurrentUserService currentUserService;
 
     @GetMapping("")
     @Operation(summary = "Lấy danh sách Store", description = "Lấy danh sách Store")
@@ -58,6 +68,30 @@ public class StoreController {
         response.setMessage("Lấy gian hàng thành công");
         response.setStatus(HttpStatus.OK.value());
         response.setData(storeService.getStoreBySellerId(sellerId));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('SELLER', 'SUPER_ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Tạo gian hàng", description = "Người bán cá thể tạo gian hàng mới (mỗi seller 1 gian hàng)")
+    public ResponseEntity<MessageResponse> createStore(@Valid @RequestBody CreateStoreRequest request) {
+        Long sellerId = currentUserService.getCurrentUserId();
+        MessageResponse response = MessageResponse.created("Tạo gian hàng thành công",
+            storeService.createStore(sellerId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SELLER', 'SUPER_ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Cập nhật gian hàng", description = "Người bán cập nhật gian hàng của mình")
+    public ResponseEntity<MessageResponse> updateStore(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateStoreRequest request) {
+        Long sellerId = currentUserService.getCurrentUserId();
+        MessageResponse response = MessageResponse.ok("Cập nhật gian hàng thành công",
+            storeService.updateStore(sellerId, id, request));
         return ResponseEntity.ok(response);
     }
 }

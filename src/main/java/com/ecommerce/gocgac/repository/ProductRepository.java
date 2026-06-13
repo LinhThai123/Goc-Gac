@@ -85,6 +85,28 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     );
     
     /**
+     * Tìm products cho admin với nhiều filter kết hợp
+     */
+    @Query("SELECT p FROM Product p WHERE " +
+           "(:storeId IS NULL OR p.storeId = :storeId) " +
+           "AND (:status IS NULL OR p.status = :status) " +
+           "AND (:approvalStatus IS NULL OR p.approvalStatus = :approvalStatus) " +
+           "AND (:productType IS NULL OR p.productType = :productType) " +
+           "AND (:categoryId IS NULL OR p.categoryId = :categoryId) " +
+           "AND (:hasVariants IS NULL OR p.hasVariants = :hasVariants) " +
+           "AND (:keyword IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Product> findAllWithFilters(
+        @Param("storeId") Long storeId,
+        @Param("status") ProductStatus status,
+        @Param("approvalStatus") ApprovalStatus approvalStatus,
+        @Param("productType") ProductType productType,
+        @Param("categoryId") Long categoryId,
+        @Param("hasVariants") Boolean hasVariants,
+        @Param("keyword") String keyword,
+        Pageable pageable
+    );
+    
+    /**
      * Tìm product theo store_id và id
      */
     Optional<Product> findByIdAndStoreId(Long id, Long storeId);
@@ -163,5 +185,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * Đếm số lượng products của store theo storeCategoryId
      */
     long countByStoreIdAndStoreCategoryId(Long storeId, Long storeCategoryId);
+
+    long countByCategoryId(Long categoryId);
 }
 

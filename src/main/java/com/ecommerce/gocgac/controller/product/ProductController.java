@@ -220,6 +220,58 @@ public class ProductController {
         }
     }
     
+    /**
+     * Gửi sản phẩm lên admin duyệt
+     */
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAnyRole('COOPERATIVE_MANAGER', 'SELLER')")
+    @Operation(summary = "Gửi sản phẩm lên duyệt",
+               description = "Chuyển sản phẩm từ DRAFT/REJECTED sang PENDING để admin kiểm duyệt.")
+    public ResponseEntity<MessageResponse> submitProductForApproval(@PathVariable Long id) {
+        try {
+            Long userId = getCurrentUserId();
+            ProductResponse product = productService.submitProductForApproval(userId, id);
+            
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Gửi sản phẩm lên duyệt thành công");
+            response.setStatus(HttpStatus.OK.value());
+            response.setData(product);
+            return ResponseEntity.ok(response);
+        } catch (ProductException e) {
+            log.error("Error submitting product for approval: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage(e.getMessage());
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    /**
+     * Rút lại yêu cầu duyệt sản phẩm
+     */
+    @PostMapping("/{id}/withdraw")
+    @PreAuthorize("hasAnyRole('COOPERATIVE_MANAGER', 'SELLER')")
+    @Operation(summary = "Rút lại yêu cầu duyệt sản phẩm",
+               description = "Chuyển sản phẩm đang PENDING về DRAFT để store có thể chỉnh sửa.")
+    public ResponseEntity<MessageResponse> withdrawProductApproval(@PathVariable Long id) {
+        try {
+            Long userId = getCurrentUserId();
+            ProductResponse product = productService.withdrawProductApproval(userId, id);
+            
+            MessageResponse response = new MessageResponse();
+            response.setMessage("Rút lại yêu cầu duyệt sản phẩm thành công");
+            response.setStatus(HttpStatus.OK.value());
+            response.setData(product);
+            return ResponseEntity.ok(response);
+        } catch (ProductException e) {
+            log.error("Error withdrawing product approval: {}", e.getMessage());
+            MessageResponse response = new MessageResponse();
+            response.setMessage(e.getMessage());
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
     // ========== Public Endpoints (không cần authentication) ==========
     
     /**
