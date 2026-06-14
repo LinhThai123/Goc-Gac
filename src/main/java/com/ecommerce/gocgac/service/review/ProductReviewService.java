@@ -17,6 +17,7 @@ import com.ecommerce.gocgac.repository.ProductRepository;
 import com.ecommerce.gocgac.repository.ProductReviewRepository;
 import com.ecommerce.gocgac.repository.ReviewReplyRepository;
 import com.ecommerce.gocgac.service.notification.NotificationService;
+import com.ecommerce.gocgac.service.product.ProductSearchService;
 import com.ecommerce.gocgac.service.store.StoreResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class ProductReviewService {
     private final OrderItemRepository orderItemRepository;
     private final StoreResolver storeResolver;
     private final NotificationService notificationService;
+    private final ProductSearchService productSearchService;
 
     private static final String REF_REVIEW = "REVIEW";
 
@@ -159,6 +161,13 @@ public class ProductReviewService {
         product.setRatingCount((int) count);
         productRepository.save(product);
         log.debug("Product {} rating updated: avg={}, count={}", productId, average, count);
+
+        // Đồng bộ rating mới sang Elasticsearch (best-effort, không làm hỏng luồng đánh giá)
+        try {
+            productSearchService.indexProduct(productId);
+        } catch (Exception e) {
+            log.warn("Không thể đồng bộ rating sản phẩm {} sang Elasticsearch: {}", productId, e.getMessage());
+        }
     }
 
     private ProductReview getReview(Long reviewId) {

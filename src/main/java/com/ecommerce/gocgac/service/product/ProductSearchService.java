@@ -17,12 +17,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -140,10 +148,14 @@ public class ProductSearchService {
             Sort sort = buildSort(request.getSortBy(), request.getSortDir());
             query.addSort(sort);
             
-            // Highlight (nếu có keyword)
-            if (request.getKeyword() != null && !request.getKeyword().trim().isEmpty() && request.getHighlight()) {
-                // Highlight sẽ được xử lý trong ElasticsearchOperations
-                // Cần cấu hình highlight trong query
+            // Highlight (nếu có keyword) — in đậm từ khóa trong tên & mô tả
+            if (request.getKeyword() != null && !request.getKeyword().trim().isEmpty()
+                    && Boolean.TRUE.equals(request.getHighlight())) {
+                Highlight highlight = new Highlight(List.of(
+                    new HighlightField("productName"),
+                    new HighlightField("description"),
+                    new HighlightField("shortDescription")));
+                query.setHighlightQuery(new HighlightQuery(highlight, ProductDocument.class));
             }
             
             // Execute search
@@ -185,9 +197,9 @@ public class ProductSearchService {
             response.setSearchTime(System.currentTimeMillis() - startTime);
             response.setHighlights(highlights);
             
-            // TODO: Build facets (aggregations) - có thể implement sau
-            response.setFacets(new SearchResponse.SearchFacets());
-            
+            // Build facets (aggregations) trên tập kết quả cơ sở (approved + active + keyword)
+            response.setFacets(buildFacets(request));
+
             return response;
         } catch (Exception e) {
             log.error("Error searching products: {}", e.getMessage(), e);
@@ -495,8 +507,88 @@ public class ProductSearchService {
         
         // Note: SKUs không được lấy từ Elasticsearch, cần lấy từ database nếu cần
         // response.setSkus(...);
-        
+
         return response;
+    }
+
+    /**
+     * Tính facets (aggregations) cho bộ lọc: số sản phẩm theo category/store/size/color/material
+     * và khoảng giá. Tính trên tập cơ sở (APPROVED + ACTIVE + keyword).
+     */
+    private SearchResponse.SearchFacets buildFacets(SearchRequest request) {
+        SearchResponse.SearchFacets facets = new SearchResponse.SearchFacets();
+        try {
+            boolean hasKeyword = request.getKeyword() != null && !request.getKeyword().trim().isEmpty();
+            String keyword = hasKeyword ? request.getKeyword().trim() : null;
+
+            co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery =
+                co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.bool(b -> {
+                    b.filter(f -> f.term(t -> t.field("approvalStatus").value(ApprovalStatus.APPROVED.name())));
+                    b.filter(f -> f.term(t -> t.field("status").value(ProductStatus.ACTIVE.name())));
+                    if (hasKeyword) {
+                        b.must(m -> m.multiMatch(mm -> mm.query(keyword)
+                            .fields("productName", "description", "shortDescription")));
+                    }
+                    return b;
+                }));
+
+            NativeQuery nativeQuery = NativeQuery.builder()
+                .withQuery(esQuery)
+                .withMaxResults(0)
+                .withAggregation("categories", Aggregation.of(a -> a.terms(t -> t.field("categoryId").size(50))))
+                .withAggregation("stores", Aggregation.of(a -> a.terms(t -> t.field("storeId").size(50))))
+                .withAggregation("sizes", Aggregation.of(a -> a.terms(t -> t.field("sizes").size(50))))
+                .withAggregation("colors", Aggregation.of(a -> a.terms(t -> t.field("colors").size(50))))
+                .withAggregation("materials", Aggregation.of(a -> a.terms(t -> t.field("materials").size(50))))
+                .withAggregation("priceStats", Aggregation.of(a -> a.stats(s -> s.field("minPrice"))))
+                .build();
+
+            SearchHits<ProductDocument> hits = elasticsearchOperations.search(nativeQuery, ProductDocument.class);
+            if (hits.getAggregations() instanceof ElasticsearchAggregations aggs) {
+                Map<String, ElasticsearchAggregation> map = aggs.aggregationsAsMap();
+                facets.setCategories(longTermFacet(map.get("categories")));
+                facets.setStores(longTermFacet(map.get("stores")));
+                facets.setSizes(stringTermFacet(map.get("sizes")));
+                facets.setColors(stringTermFacet(map.get("colors")));
+                facets.setMaterials(stringTermFacet(map.get("materials")));
+                facets.setPriceRange(priceRangeFacet(map.get("priceStats")));
+            }
+        } catch (Exception e) {
+            log.warn("Không thể tính facets: {}", e.getMessage());
+        }
+        return facets;
+    }
+
+    private Map<Long, Long> longTermFacet(ElasticsearchAggregation agg) {
+        Map<Long, Long> result = new LinkedHashMap<>();
+        if (agg == null) return result;
+        Aggregate aggregate = agg.aggregation().getAggregate();
+        if (aggregate.isLterms()) {
+            aggregate.lterms().buckets().array()
+                .forEach(b -> result.put(b.key(), b.docCount()));
+        }
+        return result;
+    }
+
+    private Map<String, Long> stringTermFacet(ElasticsearchAggregation agg) {
+        Map<String, Long> result = new LinkedHashMap<>();
+        if (agg == null) return result;
+        Aggregate aggregate = agg.aggregation().getAggregate();
+        if (aggregate.isSterms()) {
+            aggregate.sterms().buckets().array()
+                .forEach(b -> result.put(b.key().stringValue(), b.docCount()));
+        }
+        return result;
+    }
+
+    private SearchResponse.SearchFacets.PriceRange priceRangeFacet(ElasticsearchAggregation agg) {
+        if (agg == null) return null;
+        Aggregate aggregate = agg.aggregation().getAggregate();
+        if (aggregate.isStats()) {
+            var stats = aggregate.stats();
+            return new SearchResponse.SearchFacets.PriceRange(stats.min(), stats.max());
+        }
+        return null;
     }
 }
 

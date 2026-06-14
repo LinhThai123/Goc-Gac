@@ -1,6 +1,7 @@
 package com.ecommerce.gocgac.service.store;
 
 import com.ecommerce.gocgac.entity.Cooperative;
+import com.ecommerce.gocgac.entity.Store;
 import com.ecommerce.gocgac.entity.User;
 import com.ecommerce.gocgac.entity.enums.UserType;
 import com.ecommerce.gocgac.exception.BusinessException;
@@ -44,5 +45,24 @@ public class StoreResolver {
                 .getId();
         }
         throw new BusinessException("Chỉ SELLER hoặc COOPERATIVE_MANAGER mới sở hữu gian hàng");
+    }
+
+    /**
+     * Phân giải userId của chủ sở hữu gian hàng (để gán làm sellerId trong hội thoại).
+     * - Gian hàng cá thể: trả về sellerId.
+     * - Gian hàng HTX: trả về userId của người quản lý HTX.
+     */
+    public Long resolveStoreOwnerUserId(Long storeId) {
+        Store store = storeRepository.findById(storeId)
+            .orElseThrow(() -> new ResourceNotFoundException("Gian hàng không tồn tại"));
+        if (store.getSellerId() != null) {
+            return store.getSellerId();
+        }
+        if (store.getCooperativeId() != null) {
+            return cooperativeRepository.findById(store.getCooperativeId())
+                .map(Cooperative::getUserId)
+                .orElseThrow(() -> new BusinessException("HTX của gian hàng không tồn tại"));
+        }
+        throw new BusinessException("Gian hàng chưa có chủ sở hữu");
     }
 }

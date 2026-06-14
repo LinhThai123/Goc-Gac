@@ -12,6 +12,7 @@ import com.ecommerce.gocgac.repository.ProductRepository;
 import com.ecommerce.gocgac.repository.ProductReviewRepository;
 import com.ecommerce.gocgac.repository.ReviewReplyRepository;
 import com.ecommerce.gocgac.service.notification.NotificationService;
+import com.ecommerce.gocgac.service.product.ProductSearchService;
 import com.ecommerce.gocgac.service.store.StoreResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,7 @@ class ProductReviewServiceTest {
     @Mock private OrderItemRepository orderItemRepository;
     @Mock private StoreResolver storeResolver;
     @Mock private NotificationService notificationService;
+    @Mock private ProductSearchService productSearchService;
 
     @InjectMocks private ProductReviewService reviewService;
 

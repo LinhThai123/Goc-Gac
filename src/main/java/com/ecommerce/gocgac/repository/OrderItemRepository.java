@@ -27,4 +27,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     boolean hasUserPurchasedProduct(@Param("userId") Long userId,
                                     @Param("productId") Long productId,
                                     @Param("status") OrderStatus status);
+
+    /** Cặp (orderId, productId) — dùng sinh gợi ý "mua kèm". */
+    @Query("SELECT oi.orderId, oi.productId FROM OrderItem oi")
+    List<Object[]> findAllOrderProductPairs();
 }

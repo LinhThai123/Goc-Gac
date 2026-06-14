@@ -11,6 +11,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.Setting;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(indexName = "products")
+@Setting(settingPath = "elasticsearch/product-settings.json")
 public class ProductDocument {
     
     @Id
@@ -44,16 +46,16 @@ public class ProductDocument {
     @Field(type = FieldType.Keyword)
     private String productCode;
     
-    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
+    @Field(type = FieldType.Text, analyzer = "vi_analyzer", searchAnalyzer = "vi_analyzer")
     private String productName;
-    
+
     @Field(type = FieldType.Keyword)
     private String slug;
-    
-    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
+
+    @Field(type = FieldType.Text, analyzer = "vi_analyzer", searchAnalyzer = "vi_analyzer")
     private String description;
-    
-    @Field(type = FieldType.Text, analyzer = "standard", searchAnalyzer = "standard")
+
+    @Field(type = FieldType.Text, analyzer = "vi_analyzer", searchAnalyzer = "vi_analyzer")
     private String shortDescription;
     
     @Field(type = FieldType.Keyword)

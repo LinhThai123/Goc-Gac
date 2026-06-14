@@ -11,6 +11,7 @@ import com.ecommerce.gocgac.entity.enums.UserType;
 import com.ecommerce.gocgac.exception.BadRequestException;
 import com.ecommerce.gocgac.exception.BusinessException;
 import com.ecommerce.gocgac.repository.*;
+import com.ecommerce.gocgac.service.affiliate.AffiliateService;
 import com.ecommerce.gocgac.service.loyalty.LoyaltyService;
 import com.ecommerce.gocgac.service.notification.NotificationService;
 import com.ecommerce.gocgac.service.stock.StockService;
@@ -51,6 +52,7 @@ class OrderServiceTest {
     @Mock private StockService stockService;
     @Mock private VoucherService voucherService;
     @Mock private LoyaltyService loyaltyService;
+    @Mock private AffiliateService affiliateService;
     @Mock private NotificationService notificationService;
     @Mock private UserRepository userRepository;
     @Mock private StoreRepository storeRepository;

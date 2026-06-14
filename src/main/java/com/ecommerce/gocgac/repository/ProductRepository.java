@@ -187,5 +187,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     long countByStoreIdAndStoreCategoryId(Long storeId, Long storeCategoryId);
 
     long countByCategoryId(Long categoryId);
+
+    /**
+     * Tất cả sản phẩm public (APPROVED + ACTIVE + chưa xóa) — dùng cho sinh gợi ý.
+     */
+    @Query("SELECT p FROM Product p WHERE p.approvalStatus = 'APPROVED' AND p.status = 'ACTIVE' AND p.deletedAt IS NULL")
+    List<Product> findAllPublic();
+
+    /**
+     * Sản phẩm public thuộc danh sách danh mục — dùng cho "gợi ý cho bạn".
+     */
+    @Query("SELECT p FROM Product p WHERE p.categoryId IN :categoryIds " +
+           "AND p.approvalStatus = 'APPROVED' AND p.status = 'ACTIVE' AND p.deletedAt IS NULL")
+    List<Product> findPublicByCategoryIds(@Param("categoryIds") List<Long> categoryIds, Pageable pageable);
 }
 

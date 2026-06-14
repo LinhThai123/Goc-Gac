@@ -14,6 +14,7 @@ import com.ecommerce.gocgac.exception.BadRequestException;
 import com.ecommerce.gocgac.exception.BusinessException;
 import com.ecommerce.gocgac.exception.ResourceNotFoundException;
 import com.ecommerce.gocgac.repository.*;
+import com.ecommerce.gocgac.service.affiliate.AffiliateService;
 import com.ecommerce.gocgac.service.loyalty.LoyaltyService;
 import com.ecommerce.gocgac.service.notification.NotificationService;
 import com.ecommerce.gocgac.service.stock.StockService;
@@ -56,6 +57,7 @@ public class OrderService {
     private final StockService stockService;
     private final VoucherService voucherService;
     private final LoyaltyService loyaltyService;
+    private final AffiliateService affiliateService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
@@ -198,6 +200,9 @@ public class OrderService {
             loyaltyService.commitRedeem(userId, loyaltyPointsUsed, order.getId());
         }
 
+        // Sprint 10: quy gán đơn cho đối tác tiếp thị liên kết (last-click) + tạo hoa hồng
+        affiliateService.attributeOrder(order, userId);
+
         saveHistory(order.getId(), null, OrderStatus.PENDING, userId, "Khởi tạo đơn hàng");
         notificationService.notify(userId, "ORDER", "Đặt hàng thành công",
             "Đơn hàng " + order.getOrderCode() + " đã được tạo và đang chờ xử lý.",
@@ -277,6 +282,11 @@ public class OrderService {
             case RETURNED -> applyToItems(order, (variantId, qty) ->
                 stockService.restock(variantId, qty, order.getId(), actorUserId));
             default -> { /* các trạng thái khác không tác động tồn */ }
+        }
+
+        // Sprint 10: đơn hủy/hoàn → hủy hoa hồng tiếp thị liên kết
+        if (to == OrderStatus.CANCELLED || to == OrderStatus.RETURNED) {
+            affiliateService.voidCommissionForOrder(order.getId());
         }
 
         LocalDateTime now = LocalDateTime.now();
